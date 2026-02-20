@@ -1,0 +1,4 @@
+node_modules
+src/config.json
+src/users_data.json
+build
