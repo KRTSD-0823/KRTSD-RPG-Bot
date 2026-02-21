@@ -48,7 +48,7 @@ function getNowTimestamp(): number {
     commands.push(data.toJSON());
   }
 
-  const { REST, Routes} = await import("discord.js");
+  const { REST, Routes } = await import("discord.js");
   const rest = new REST().setToken(token);
   // 登録
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
@@ -99,39 +99,60 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
   const command = client.commands.get(commandName);
   // ユーザーごとのクールダウンを読み込む
   const cooldown = client.cooldown.get(interaction.user.id);
+
   // コマンドの処理が設定されているかチェック
-  if (typeof command !== "undefined" && "execute" in command) {
-    // クールダウンの存在確認
-    if ("cooldown" in command) {
-      const userCooldown = cooldown?.[commandName] ?? 0;
-      const nowTimestamp = getNowTimestamp();
-      // クールダウン中か判定する
-      if (nowTimestamp > userCooldown) {
-        // クールダウン中じゃないとき
-        client.cooldown.set(interaction.user.id, {
-          [commandName]: nowTimestamp + command.cooldown
-        });
-      } else {
-        // クールダウン中の時
-        // 次に実行できる時間のタイムスタンプ
-        const nextTimestamp = userCooldown.toString();
-        await interaction.reply({
-          content: `クールダウン中です。\`${commandName}\`は <t:${nextTimestamp}:R> に使用できます。`,
-          flags: MessageFlags.Ephemeral
-        });
-        // 先の処理を実行しないようにする
-        return;
-      }
-    }
-    
-    // 実行
-    await command.execute(interaction, client);
-  } else {
+  if (typeof command === "undefined" || !("execute" in command)) {
     // コマンドの処理が設定されていなかった場合
     await interaction.reply({
       content: "このコマンドは未実装です。",
       flags: MessageFlags.Ephemeral
     });
+    // 中断
+    return;
+  }
+
+  // クールダウンの存在確認
+  if ("cooldown" in command) {
+    const userCooldown = cooldown?.[commandName] ?? 0;
+    const nowTimestamp = getNowTimestamp();
+    // クールダウン中か判定する
+    if (nowTimestamp > userCooldown) {
+      // クールダウン中じゃないとき
+      client.cooldown.set(interaction.user.id, {
+        [commandName]: nowTimestamp + command.cooldown
+      });
+    } else {
+      // クールダウン中の時
+      // 次に実行できる時間のタイムスタンプ
+      const nextTimestamp = userCooldown.toString();
+      await interaction.reply({
+        content: `クールダウン中です。\`${commandName}\`は <t:${nextTimestamp}:R> に使用できます。`,
+        flags: MessageFlags.Ephemeral
+      });
+      // 先の処理を実行しないようにする
+      return;
+    }
+  }
+
+  // エラーハンドリング
+  try {
+    // 実行
+    await command.execute(interaction, client);
+  } catch (e) {
+    // エラー時
+    console.error(e);
+
+    if (!interaction.replied) {
+      interaction.reply({
+        content: "エラーが発生しました。",
+        flags: MessageFlags.Ephemeral
+      });
+    } else {
+      interaction.followUp({
+        content: "エラーが発生しました。",
+        flags: MessageFlags.Ephemeral
+      });
+    }
   }
 });
 
