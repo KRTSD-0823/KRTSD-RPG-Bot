@@ -151,6 +151,7 @@ export const data: Command = {
       );
     });
 
+    // HPやMPなどを計算したステータスのオブジェクトを返す
     const statusDataLabel = new StatusCalculator(statusData);
 
     // 埋め込みを作成
@@ -175,7 +176,7 @@ export const data: Command = {
         }
       );
 
-    // ボタンの作成
+    // 送信ボタンの作成
     const confirmButton = new ButtonBuilder()
       .setCustomId("confirm")
       .setLabel("送信する")
@@ -188,11 +189,13 @@ export const data: Command = {
       new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton)
     ];
 
+    // オブジェクトを受け取る
     const response = await interaction.reply({
       embeds: [embed],
       components: row1,
       withResponse: true
     });
+
     // メニューのCollector
     const stringMenuCollector = response.resource?.message?.createMessageComponentCollector({
       componentType: ComponentType.StringSelect
@@ -201,93 +204,96 @@ export const data: Command = {
     const buttonCollector = response.resource?.message?.createMessageComponentCollector({
       componentType: ComponentType.Button
     });
+
     // Collectorでメニューが選択された時の処理をする
     stringMenuCollector?.on("collect", async (i) => {
       // 選択されたメニューの値
       const [value] = i.values;
+
       // 型ガード
-      if (typeof value === "string") {
-        // 「インタラクションに失敗しました」というメッセージを出さないように先にしておく
-        await i.deferUpdate();
-        // ステータス名なのかステータス値なのか判定する正規表現
-        const isValueRegExp = /(?<=[0-9]+_)[0-9]+/;
-        if (!isValueRegExp.test(value)) {
-          // ステータス名の処理
-          // valueを型StatusKeyとして代入
-          const statusName = value as StatusKey;
-          const valueChoices: Array<number> = statusChoices[statusName];
+      if (typeof value !== "string") return;
 
-          // ステータス値を選択するのメニュー
-          const valueSelectMenu = new StringSelectMenuBuilder()
-            .setCustomId("statusValue")
-            .setPlaceholder(`${statusName}の値を選択`);
-          valueChoices.forEach((choice: number, i) => {
-            // choiceとiは数字型なので文字列型にしてあげる(別定数に代入)
-            const choiceString: string = choice.toString();
-            const indexString = i.toString();
-            // ステータス値をオプションに追加
-            valueSelectMenu.addOptions(
-              new StringSelectMenuOptionBuilder()
-                .setLabel(choiceString)
-                .setValue(`${indexString}_${choiceString}`) // ここでは文字列しか使えない
-            );
-          });
+      // 「インタラクションに失敗しました」というメッセージを出さないように先にしておく
+      await i.deferUpdate();
+      // ステータス名なのかステータス値なのか判定する正規表現
+      const isValueRegExp = /(?<=[0-9]+_)[0-9]+/;
+      if (!isValueRegExp.test(value)) {
+        // ステータス名の処理
+        // valueを型StatusKeyとして代入
+        const statusName = value as StatusKey;
+        const valueChoices: Array<number> = statusChoices[statusName];
 
-          const cancelButton = new ButtonBuilder()
-            .setCustomId("cancel")
-            .setLabel("戻る")
-            .setStyle(ButtonStyle.Danger);
+        // ステータス値を選択するのメニュー
+        const valueSelectMenu = new StringSelectMenuBuilder()
+          .setCustomId("statusValue")
+          .setPlaceholder(`${statusName}の値を選択`);
+        valueChoices.forEach((choice: number, i) => {
+          // choiceとiは数字型なので文字列型にしてあげる(別定数に代入)
+          const choiceString: string = choice.toString();
+          const indexString = i.toString();
+          // ステータス値をオプションに追加
+          valueSelectMenu.addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel(choiceString)
+              .setValue(`${indexString}_${choiceString}`) // ここでは文字列しか使えない
+          );
+        });
 
-          const row2 = [
-            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(valueSelectMenu),
-            new ActionRowBuilder<ButtonBuilder>().addComponents(cancelButton)
-          ];
+        const cancelButton = new ButtonBuilder()
+          .setCustomId("cancel")
+          .setLabel("戻る")
+          .setStyle(ButtonStyle.Danger);
 
-          // ステータスの説明を元の埋め込みに追加
-          embed.data.fields![2]!.value = "```" + descriptionsData.status[statusName] + "```";
+        const row2 = [
+          new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(valueSelectMenu),
+          new ActionRowBuilder<ButtonBuilder>().addComponents(cancelButton)
+        ];
 
-          await interaction.editReply({
-            embeds: [embed],
-            components: row2
-          });
-          // ステータス名を保存しておく
-          client.statusName.set(i.message.id, statusName);
-        } else {
-          // ステータス値の処理
-          // ステータス名を読み込み
-          const statusName = client.statusName.get(i.message.id) as StatusKey;
-          // valueから選択されたステータス値を取り出す
-          const statusValue = isValueRegExp.exec(value)?.[0];
-          if (typeof statusValue === "string" && statusName in statusData) {
-            // 数値化して代入
-            statusData[statusName] = parseInt(statusValue);
-          }
+        // ステータスの説明を元の埋め込みに追加
+        embed.data.fields![2]!.value = "```" + descriptionsData.status[statusName] + "```";
 
-          // キーと値を配列にする
-          const statusDataEntries = Object.entries(statusData);
-          // 全部のステータスが入力されたか判定する
-          const isAllSet = statusDataEntries.every(([, value]) => value > 0);
-
-          // 全ステータスが埋まってる時の処理
-          if (isAllSet) {
-            const buttonData = row1[1]?.components[0]?.data;
-            // 送信するボタンの無効化を解除
-            buttonData!.disabled = false;
-          }
-
-          // ステータスの計算
-          const calculatedStatusData = new StatusCalculator(statusData).status;
-          // 元の埋め込みを書き換え
-          embed.data.fields![1]!.value = "```" + cleanJSON(JSON.stringify(calculatedStatusData)) + "```";
-          embed.data.fields![2]!.value = "```\n ```";
-          // メッセージを編集(最初の状態に戻す)
-          await interaction.editReply({
-            embeds: [embed],
-            components: row1
-          });
+        await interaction.editReply({
+          embeds: [embed],
+          components: row2
+        });
+        // ステータス名を保存しておく
+        client.statusName.set(i.message.id, statusName);
+      } else {
+        // ステータス値の処理
+        // ステータス名を読み込み
+        const statusName = client.statusName.get(i.message.id) as StatusKey;
+        // valueから選択されたステータス値を取り出す
+        const statusValue = isValueRegExp.exec(value)?.[0];
+        if (typeof statusValue === "string" && statusName in statusData) {
+          // 数値化して代入
+          statusData[statusName] = parseInt(statusValue);
         }
+
+        // キーと値を配列にする
+        const statusDataEntries = Object.entries(statusData);
+        // 全部のステータスが入力されたか判定する
+        const isAllSet = statusDataEntries.every(([, value]) => value > 0);
+
+        // 全ステータスが埋まってる時の処理
+        if (isAllSet) {
+          const buttonData = row1[1]?.components[0]?.data;
+          // 送信するボタンの無効化を解除
+          buttonData!.disabled = false;
+        }
+
+        // ステータスの計算
+        const calculatedStatusData = new StatusCalculator(statusData).status;
+        // 元の埋め込みを書き換え
+        embed.data.fields![1]!.value = "```" + cleanJSON(JSON.stringify(calculatedStatusData)) + "```";
+        embed.data.fields![2]!.value = "```\n ```";
+        // メッセージを編集(最初の状態に戻す)
+        await interaction.editReply({
+          embeds: [embed],
+          components: row1
+        });
       }
     });
+
     // ボタンが押された時の処理をする
     buttonCollector?.on("collect", async (i) => {
       // customIdというidでボタンを識別する
@@ -354,7 +360,6 @@ export const data: Command = {
           });
           // 設定
           usersData.default[userId] = statusData;
-
           const usersDataPath = path.join(__dirname, "../users_data.json");
           // ユーザーのデータを保存する
           fs.writeFileSync(usersDataPath, JSON.stringify(usersData.default, null, 2));
