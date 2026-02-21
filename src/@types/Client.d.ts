@@ -2,6 +2,11 @@
 
 import type { Collection } from "discord.js";
 
+interface Cooldown {
+  // ユーザーID：タイムスタンプという形式
+  [key: string]: number;
+}
+
 // client.commandsとstatusNameを参照しようとした時の警告を無くすために必要
 // Collection使うときには適宜追加
 declare module "discord.js" {
