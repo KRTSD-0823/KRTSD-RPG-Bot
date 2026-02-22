@@ -7,18 +7,24 @@ import path from "node:path";
 // ES moduleでは元から宣言されていない
 const __dirname = import.meta.dirname;
 const __filename = import.meta.filename;
+
 // tsファイルでのテストとjsファイルでの実行の時で拡張子が変わるから、あらかじめ拡張子を宣言しておく
-const extension: string = __filename.slice(-2);
+const extension = __filename.slice(-2);
 
 import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
 import type { Message, Interaction, SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
 
 // 必要な情報を取得
 import config from "./config.json" with { type: "json" };
+const { token, clientId, guildId } = config;
 
+// clientの設定
 const client: Client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
-const { token, clientId, guildId } = config;
+// 色(埋め込みなど)を他ファイルでも読み込めるようにする
+export const color = {
+  default: [255, 120, 80]
+};
 
 // あるディレクトリから別のディレクトリまでの相対パスを返す関数
 function getRelativePath(from: string, to: string) {
