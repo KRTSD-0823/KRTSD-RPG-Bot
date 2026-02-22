@@ -1,4 +1,10 @@
+// npm関連
 node_modules
+package.json
+
+// コンパイル先
+build/*
+
+// 重要な情報が入ったJSONファイル
 src/config.json
 src/users_data.json
-build
