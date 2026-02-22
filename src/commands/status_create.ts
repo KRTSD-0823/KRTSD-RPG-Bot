@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
-import type { BaseGuildTextChannel, Embed } from "discord.js";
+import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
 
 import descriptionsData from "../description.json" with { type: "json" };
 
@@ -193,13 +193,19 @@ const data: Subcommand = {
       withResponse: true
     });
 
+    const componentFilter = (i: StringSelectMenuInteraction | ButtonInteraction) => {
+      return i.user.id === interaction.user.id;
+    };
+
     // メニューのCollector
     const stringMenuCollector = response.resource?.message?.createMessageComponentCollector({
-      componentType: ComponentType.StringSelect
+      componentType: ComponentType.StringSelect,
+      filter: componentFilter
     });
     // ボタンが押された時のCollector
     const buttonCollector = response.resource?.message?.createMessageComponentCollector({
-      componentType: ComponentType.Button
+      componentType: ComponentType.Button,
+      filter: componentFilter
     });
 
     // Collectorでメニューが選択された時の処理をする
@@ -326,7 +332,8 @@ const data: Subcommand = {
 
         // 確定ボタンの検知とか
         const enterButtonCollector = enterButtonMessage.createMessageComponentCollector({
-          componentType: ComponentType.Button
+          componentType: ComponentType.Button,
+          filter: componentFilter
         });
 
         // 確定ボタンが押された時の処理
