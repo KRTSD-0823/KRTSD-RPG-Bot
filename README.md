@@ -2,8 +2,9 @@
 このDiscord Botはほぼ自分のサーバーのためだけに存在していると言えるBotです。  
 コードの見づらさや間違いなどなど、突っ込むところしかないと思いますが、あくまで自己満足で作ったものなので温かい目でコードを見守ってください。
 # 必要なファイル
-- `src/config.json`(`src/temp_config.json`に例が書いてあるので、そちらを参考に設定してください)
-- `src/users_data.json`
+- `src/config.json`：BotのトークンやID含む機密情報が書かれたファイル。  
+  `src/temp_config.json`に例が書いてあるので、そちらを参考に設定してください。
+- `src/users_data.json`：ユーザーのステータスを保存しておくファイル。空でOK。
 # コマンドについて
 package.jsonを見れば分かると思いますが、`npm run`で使えるコマンドをまとめておこうと思います。
 - test：`src`フォルダー内の`main.ts`を直接実行。
