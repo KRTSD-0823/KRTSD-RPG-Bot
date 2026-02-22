@@ -1,6 +1,6 @@
 // npm関連
 node_modules
-package.json
+package-lock.json
 
 // コンパイル先
 build/*
