@@ -2,11 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
-import type { BaseGuildTextChannel } from "discord.js";
+import type { BaseGuildTextChannel, Embed } from "discord.js";
 
 import descriptionsData from "../description.json" with { type: "json" };
 
 const __dirname = import.meta.dirname;
+const __filename = import.meta.filename;
+
+const extension = __filename.slice(-2);
 
 // ステータス値を計算してくれるクラス
 class StatusCalculator {
@@ -86,7 +89,7 @@ function getRandomStatus(): Array<number> {
 }
 
 // JSON(文字列)を綺麗にする
-function cleanJSON(data: string): string {
+export function cleanJSON(data: string): string {
   // プロパティ名のダブルクォーテーションを空白に置き換える(無くす)
   // RegExp(正規表現)の後にgフラグを付けないと一つしか置き換えしてくれない
   return data.replace(/"(?=.*:)/g, "")
@@ -152,9 +155,11 @@ const data: Subcommand = {
     // HPやMPなどを計算したステータスのオブジェクトを返す
     const statusDataLabel = new StatusCalculator(statusData);
 
+    const { color } = await import(`../main.${extension}`) as BotColor;
+
     // 埋め込みを作成
     const embed = new EmbedBuilder()
-      .setColor([255, 120, 80])
+      .setColor(color.default)
       .setTitle("ステータスの設定")
       .setDescription("下にあるメニューを使ってステータスの設定を行ってください。")
       .addFields(
@@ -172,18 +177,22 @@ const data: Subcommand = {
           // 後に更新する
           value: "```\n ```"
         }
-      );
+      )
+      .setTimestamp();
+
     // 送信ボタンの作成
     const confirmButton = new ButtonBuilder()
       .setCustomId("confirm")
       .setLabel("送信する")
       .setStyle(ButtonStyle.Primary)
       .setDisabled(true);
+
     // 配列にして二つのActionRowBuilderをまとめた
     const row1 = [
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(nameChoicesMenu),
       new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton)
     ];
+
     // オブジェクトを受け取る
     const response = await interaction.reply({
       embeds: [embed],

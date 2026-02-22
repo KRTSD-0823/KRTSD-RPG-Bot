@@ -7,7 +7,11 @@ const data: Command = {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("create")
-        .setDescription("ステータスを作成する")),
+        .setDescription("ステータスを作成"))
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("info")
+        .setDescription("ユーザーのステータスを表示")),
   async execute(interaction, client) {
     const { commandName } = interaction;
     // サブコマンド名を取得
