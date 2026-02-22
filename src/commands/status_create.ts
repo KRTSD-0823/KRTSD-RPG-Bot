@@ -120,13 +120,6 @@ const data: Subcommand = {
       力: 0,
       魔力: 0,
       魔法効率: 0
-      // HP: 0,
-      // MP: 0,
-      // REG: 0,
-      // MREG: 0,
-      // AT: 0,
-      // MAT: 0,
-      // MPC: 0
     };
     // 選択肢を生成
     const statusChoices: StatusChoice = {
@@ -312,6 +305,8 @@ const data: Subcommand = {
           flags: MessageFlags.Ephemeral
         });
 
+        const finalStatusData = new StatusCalculator(statusData);
+
         // 作成を確定するボタン
         const enterButton = new ButtonBuilder()
           .setCustomId("enter")
@@ -322,7 +317,7 @@ const data: Subcommand = {
         // replyはInteractionCallbackResponseオブジェクトが返ってくる
         const enterButtonMessage = await i.followUp({
           content: "```\n" +
-            cleanJSON(JSON.stringify(statusData)) +
+            cleanJSON(JSON.stringify(finalStatusData.status)) +
             "\n```\n以上のステータスを登録します。",
           components: [row3],
           flags: MessageFlags.Ephemeral,
@@ -383,8 +378,6 @@ const data: Subcommand = {
 
           // BaseGuildTextChannelって型を付けてあげないとsendメソッドが出てこない
           const nowChannel = client.channels.cache.get(enterButtonInteraction.channelId) as BaseGuildTextChannel;
-
-          const finalStatusData = new StatusCalculator(statusData);
 
           if (typeof nowChannel !== "undefined") {
             nowChannel.send(
