@@ -8,7 +8,6 @@ import descriptionsData from "../description.json" with { type: "json" };
 
 const __dirname = import.meta.dirname;
 const __filename = import.meta.filename;
-
 const extension = __filename.slice(-2);
 
 // ステータス値を計算してくれるクラス
@@ -111,6 +110,15 @@ const data: Subcommand = {
   isSubcommand: true,
   cooldown: 3600,
   async execute(interaction, client) {
+    const userStatusData: UsersData = await import("../users_data.json", { with: { type: "json"} });
+    if (interaction.user.id in userStatusData.default) {
+      await interaction.reply({
+        content: "既にステータスを作成しています。",
+        flags: MessageFlags.Ephemeral
+      });
+      // 中断
+      return;
+    }
     // ステータスの初期化
     const statusData: Status = {
       体力: 0,
@@ -356,11 +364,7 @@ const data: Subcommand = {
           // 万が一、違う人が押してしまってもいいようにinteractionから取得している
           const userId = interaction.user.id;
           // users_data.jsonを読み込む
-          const usersData: UsersData = await import("../users_data.json", {
-            with: {
-              type: "json"
-            }
-          });
+          const usersData: UsersData = await import("../users_data.json", { with: { type: "json" } });
           // 設定
           usersData.default[userId] = statusData;
           const usersDataPath = path.join(__dirname, "../users_data.json");
