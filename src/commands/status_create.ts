@@ -110,8 +110,11 @@ const data: Subcommand = {
   isSubcommand: true,
   cooldown: 3600,
   async execute(interaction, client) {
-    const userStatusData: UsersData = await import("../users_data.json", { with: { type: "json"} });
-    if (interaction.user.id in userStatusData.default) {
+    // ユーザー全体のデータ(users_data.json)を取得
+    const usersData: UsersData = await import("../users_data.json", { with: { type: "json"} });
+    // 既に登録されているか判定
+    if (interaction.user.id in usersData.default) {
+      // 返信
       await interaction.reply({
         content: "既にステータスを作成しています。",
         flags: MessageFlags.Ephemeral
@@ -119,6 +122,7 @@ const data: Subcommand = {
       // 中断
       return;
     }
+
     // ステータスの初期化
     const statusData: Status = {
       体力: 0,
@@ -363,8 +367,6 @@ const data: Subcommand = {
 
           // 万が一、違う人が押してしまってもいいようにinteractionから取得している
           const userId = interaction.user.id;
-          // users_data.jsonを読み込む
-          const usersData: UsersData = await import("../users_data.json", { with: { type: "json" } });
           // 設定
           usersData.default[userId] = statusData;
           const usersDataPath = path.join(__dirname, "../users_data.json");
