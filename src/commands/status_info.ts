@@ -18,10 +18,13 @@ const data: Subcommand = {
     // 型ガード
     if (typeof status === "undefined") return;
 
+    // 拡張子は動的に変えている
+
     // 関数読み込み
     const { cleanJSON } = await import(`./status_create.${extension}`);
     // 色のデータ読み込み
-    const { color }= await import(`../main.${extension}`) as BotColor;
+    // importしたデータのdefaultにあるcolorを分割代入
+    const { default: { color } } = await import(`../main.${extension}`) as BotColor;
 
     // 埋め込みの作成
     const embed = new EmbedBuilder()
