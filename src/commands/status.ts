@@ -24,22 +24,16 @@ const data: Command = {
     // 型ガード
     if (typeof command === "undefined") return;
 
-    // cooldownの存在確認
-    if ("cooldown" in command) {
-      // サブコマンドがクールダウン中かの判定を受け取る
-      const isCooldown = checkCommandCooldown(client, interaction, fileName);
-      // データ化
-      const cooldownData = {
-        commandName: fileName,
-        commandCooldown: command.cooldown,
-        isCooldown
-      };
-      // 処理
-      executeCommandCooldown(client, interaction, cooldownData);
+    // データにする
+    const cooldownData: CooldownData = {
+      commandName: fileName,
+      command
+    };
+    // サブコマンドがクールダウン中かの判定を受け取る
+    const isCooldown = checkCommandCooldown(client, interaction, cooldownData);
 
-      // 中断
-      if (isCooldown) return;
-    }
+    // 中断
+    if (isCooldown) return;
 
     await command.execute(interaction, client);
   }

@@ -22,7 +22,7 @@ const { token, clientId, guildId } = config;
 const client: Client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
-export const color = {
+const color = {
   default: [255, 120, 80]
 };
 
@@ -36,51 +36,47 @@ function getNowTimestamp() {
   return Math.floor(Date.now() / 1000);
 }
 
-// コマンド実行時にユーザーがクールダウン中か判定する
-function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, commandName: string) {
+// コマンド実行時のユーザーのクールダウンの処理をする関数
+function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
+  // 取り出す
+  const { commandName, command } = cooldownData;
+
+  // クールダウンが存在しないコマンドなら中断
+  if (!("cooldown" in command)) return false;
+
   // ユーザーごとのクールダウンを読み込む
   const cooldown = client.cooldown.get(interaction.user.id);
   const userCooldown = cooldown?.[commandName] ?? 0;
   const nowTimestamp = getNowTimestamp();
   // クールダウン中か判定する
   if (nowTimestamp < userCooldown) {
-    // クールダウン中の時
-    return true;
-  } else {
-    // クールダウン中じゃない時
-    return false;
-  }
-}
-
-// ユーザーの指定のコマンドのクールダウンの処理をする
-function executeCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
-  const { commandName, commandCooldown, isCooldown } = cooldownData;
-  // ユーザーに設定されているクールダウン解除の時間のタイムスタンプを取得
-  // 設定されていないなら0になるようにしている
-  const userCooldown = client.cooldown.get(interaction.user.id)?.[commandName] ?? 0;
-  // 現在時刻のタイムスタンプを取得
-  const nowTimestamp = getNowTimestamp();
-  if (!isCooldown) {
-    // クールダウンじゃない時
-    // クールダウンを設定
-    client.cooldown.set(interaction.user.id, {
-      [commandName]: nowTimestamp + commandCooldown
-    });
-  } else {
     // クールダウンの時
     // 次に実行できる時間のタイムスタンプを取得
     const nextTimestamp = userCooldown?.toString();
+    // 返信
     interaction.reply({
       content: `クールダウン中です。\`${commandName}\`は <t:${nextTimestamp}:R> に使用できます。`,
       flags: MessageFlags.Ephemeral
     });
+    return true;
+  } else {
+    // クールダウン中じゃない時
+    // クールダウンを設定
+    client.cooldown.set(interaction.user.id, {
+      [commandName]: nowTimestamp + command.cooldown
+    });
+    return false;
   }
 }
 
+// 他のファイルから読み込めるようにする
+export default {
+  color
+};
+
 // 非推奨ではある
-// グローバル化(?)（要するに、どのファイルからもアクセスできるようにする）
+// グローバル化(?)する(要するに、どのファイルからもアクセスできるようにする)
 (globalThis as any).checkCommandCooldown = checkCommandCooldown;
-(globalThis as any).executeCommandCooldown = executeCommandCooldown;
 
 // コマンドをDiscordに登録する
 (async () => {
@@ -181,21 +177,15 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     return;
   }
 
-  // クールダウンの存在確認
-  if ("cooldown" in command) {
-    // コマンドのクールダウンを取得
-    const commandCooldown = command.cooldown;
-    // クールダウン中か判定
-    const isCooldown = checkCommandCooldown(client, interaction, commandName);
-    // データの設定
-    const cooldownData = {
-      commandName,
-      commandCooldown,
-      isCooldown
-    }
-    // 設定
-    executeCommandCooldown(client, interaction, cooldownData);
-  }
+  // クールダウンの情報をデータにする
+  const cooldownData = {
+    commandName,
+    command
+  };
+  // クールダウン中か判定・設定
+  const isCooldown = checkCommandCooldown(client, interaction, cooldownData);
+  // クールダウン中なら中断
+  if (isCooldown) return;
 
   // エラーハンドリング
   try {

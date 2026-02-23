@@ -2,16 +2,16 @@
 
 import { Client, ChatInputCommandInteraction} from "discord.js";
 
-// 色の型
 declare global {
+  // 色の型
   interface BotColor {
     // タプル型
     [key: string]: Array<number, number, number>;
   }
 }
 
-// 使える関数
+// 関数
 declare global {
-  function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, commandName: string): boolean;
-  function executeCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData): void;
+  // クールダウンか確認して設定する関数
+  function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData): boolean;
 }

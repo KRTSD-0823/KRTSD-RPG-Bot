@@ -12,8 +12,7 @@ declare global {
 	// 関数に渡す用
 	interface CooldownData {
 		commandName: string;
-		commandCooldown: number;
-		isCooldown: boolean;
+		command: Command | Subcommand;
 	}
 }
 
