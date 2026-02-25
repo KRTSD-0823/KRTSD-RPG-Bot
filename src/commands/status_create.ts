@@ -26,54 +26,69 @@ class StatusCalculator {
     // 初期化
     this.status.HP = 0;
     this.status.MP = 0;
-    this.status.REG = 0;
-    this.status.MREG = 0;
-    this.status.AT = 0;
-    this.status.MAT = 0;
-    this.status.MPC = 0;
+    this.status.防御力 = 0;
+    this.status.魔法耐性 = 0;
+    this.status.攻撃力 = 0;
+    this.status.魔法攻撃力 = 0;
+    this.status.魔力節約術 = 0;
+    this.status.素早さ = 0;
 
     // HP
     if (this.check(status, ["体力", "我慢強さ"])) {
-      const { 体力: health, 我慢強さ: stand } = status;
-      const value = Math.floor(health + stand / 3)
+      // 必要な値を取り出す
+      const { 体力, 我慢強さ } = status;
+      // 値の計算
+      const value = 体力 + 我慢強さ / 3;
+      // 設定
       this.status.HP = value > 20 ? value : 20;
     }
     // MP
     if (this.check(status, ["魔力量", "魔法効率", "魔法抵抗"])) {
-      const { 魔力量: magic, 魔法効率: productivity, 魔法抵抗: resistance } = status;
-      const difference = productivity - resistance;
-      const value = Math.floor(magic + (difference > 0 ? difference : 0));;
+      const { 魔力量, 魔法効率, 魔法抵抗 } = status;
+      const difference = 魔法効率 - 魔法抵抗;
+      const value = 魔力量 + (difference > 0 ? difference : 0);
       this.status.MP = value > 0 ? value : 10;
     }
-    // REG
+    // 防御力
     if (this.check(status, ["我慢強さ"])) {
-      const { 我慢強さ: stand } = status;
-      const value = Math.floor(stand / 10);
-      this.status.REG = value;
+      const { 我慢強さ } = status;
+      const value = 我慢強さ / 10;
+      this.status.防御力 = value;
     }
-    // MREG
+    // 魔法耐性
     if (this.check(status, ["魔法抵抗"])) {
-      const { 魔法抵抗: resistance } = status;
-      const value = Math.floor(resistance / 5);
-      this.status.MREG = value;
+      const { 我慢強さ, 魔法抵抗 } = status;
+      const value = 我慢強さ / 20 + 魔法抵抗 / 5;
+      this.status.魔法耐性 = value;
     }
-    // AT
+    // 攻撃力
     if (this.check(status, ["力"])) {
-      const { 力: power } = status;
-      const value = Math.floor(power / 10);
-      this.status.AT = value;
+      const { 力 } = status;
+      const value = 力 / 10;
+      this.status.攻撃力 = value;
     }
-    // MAT
+    // 魔法攻撃力
     if (this.check(status, ["魔力"])) {
-      const { 魔力: magic } = status;
-      const value = Math.floor(magic / 15);
-      this.status.MAT = value;
+      const { 魔力 } = status;
+      const value = 魔力 / 15;
+      this.status.魔法攻撃力 = value;
     }
-    // MPC
+    // 素早さ
+    if (this.check(status, ["俊敏"])) {
+      const { 俊敏 } = status;
+      const value = 俊敏 / 2;
+      this.status.素早さ = value > 10 ? value : 10;
+    }
+    // 魔法節約術
     if (this.check(status, ["魔法効率"])) {
-      const { 魔法効率: productivity } = status;
-      const value = Math.floor(productivity / 20);
-      this.status.MPC = value;
+      const { 魔法効率 } = status;
+      const value = Math.floor(魔法効率 / 20);
+      this.status.魔力節約術 = value;
+    }
+
+    // 反復処理して全ステータスを切り捨て
+    for (const [key, value] of Object.entries(this.status)) {
+      this.status[(key as StatusKey)] = Math.floor(value);
     }
   }
 }
@@ -128,20 +143,22 @@ const data: Subcommand = {
       体力: 0,
       魔力量: 0,
       我慢強さ: 0,
+      魔法効率: 0,
       魔法抵抗: 0,
       力: 0,
       魔力: 0,
-      魔法効率: 0
+      俊敏: 0
     };
     // 選択肢を生成
     const statusChoices: StatusChoice = {
       体力: getRandomStatus(),
       魔力量: getRandomStatus(),
       我慢強さ: getRandomStatus(),
+      魔法効率: getRandomStatus(),
       魔法抵抗: getRandomStatus(),
       力: getRandomStatus(),
       魔力: getRandomStatus(),
-      魔法効率: getRandomStatus()
+      俊敏: getRandomStatus()
     };
 
     // ステータス名を選択するメニュー
@@ -160,7 +177,8 @@ const data: Subcommand = {
     // HPやMPなどを計算したステータスのオブジェクトを返す
     const statusDataLabel = new StatusCalculator(statusData);
 
-    const { color } = await import(`../main.${extension}`) as BotColor;
+    // 気持ち悪い入れ子
+    const { default: { color } } = await import(`../main.${extension}`) as BotColor;
 
     // 埋め込みを作成
     const embed = new EmbedBuilder()
@@ -368,7 +386,7 @@ const data: Subcommand = {
           // 万が一、違う人が押してしまってもいいようにinteractionから取得している
           const userId = interaction.user.id;
           // 設定
-          usersData.default[userId] = statusData;
+          usersData.default[userId] = finalStatusData.status;
           const usersDataPath = path.join(__dirname, "../users_data.json");
           // ユーザーのデータを保存する
           fs.writeFileSync(usersDataPath, JSON.stringify(usersData.default, null, 2));

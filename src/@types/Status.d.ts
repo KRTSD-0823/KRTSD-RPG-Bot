@@ -9,13 +9,15 @@ interface Status {
   魔法抵抗: number;
   力: number;
   魔力: number;
+  俊敏: number;
   HP?: number;
   MP?: number;
-  REG?: number;
-  MREG?: number;
-  AT?: number;
-  MAT?: number;
-  MPC?: number;
+  防御力?: number;
+  魔法耐性?: number;
+  攻撃力?: number;
+  魔法攻撃力?: number;
+  素早さ?: number;
+  魔力節約術?: number;
 };
 
 // ステータス値の選択肢の型
@@ -27,7 +29,8 @@ interface StatusChoice {
   魔法抵抗: Array<number>;
   力: Array<number>;
   魔力: Array<number>;
+  俊敏: Array<number>;
 };
 
 // ステータスオブジェクトのキーの型
-type StatusKey = "体力" | "魔力量" | "我慢強さ" | "魔法抵抗" | "力" | "魔力" | "魔法効率";
+type StatusKey = "体力" | "魔力量" | "我慢強さ" | "魔法効率" | "魔法抵抗" | "力" | "魔力" | "俊敏";
