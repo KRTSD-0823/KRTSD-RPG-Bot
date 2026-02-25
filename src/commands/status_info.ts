@@ -15,8 +15,16 @@ const data: Subcommand = {
     // ユーザーのステータスを取得
     const status = usersData.default[interaction.user.id];
 
-    // 型ガード
-    if (typeof status === "undefined") return;
+    // ステータスが登録済みか判定
+    if (typeof status === "undefined") {
+      // 返信
+      await interaction.reply({
+        content: "ステータスを登録していません。`/status`コマンドを使ってステータスの作成をしてください。",
+        flags: MessageFlags.Ephemeral
+      });
+      // 中断
+      return;
+    }
 
     // 拡張子は動的に変えている
 
