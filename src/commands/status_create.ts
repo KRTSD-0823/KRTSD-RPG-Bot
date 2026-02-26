@@ -25,6 +25,7 @@ class StatusCalculator {
 
     // 初期化
     this.status.HP = 0;
+    this.status.AP = 0;
     this.status.MP = 0;
     this.status.防御力 = 0;
     this.status.魔法耐性 = 0;
@@ -41,6 +42,12 @@ class StatusCalculator {
       const value = 体力 + 我慢強さ / 3;
       // 設定
       this.status.HP = value > 20 ? value : 20;
+    }
+    // AP
+    if (this.check(status, ["体力", "力"])) {
+      const { 体力, 力 } = status;
+      const value = (体力 + 力) / 2;
+      this.status.AP = value > 15 ? value : 15;
     }
     // MP
     if (this.check(status, ["魔力量", "魔法効率", "魔法抵抗"])) {
@@ -329,6 +336,7 @@ const data: Subcommand = {
       // customIdというidでボタンを識別する
       const { customId } = i;
 
+      // ボタンごとの処理
       if (customId === "cancel") {
         await i.deferUpdate();
         // ステータスの値を選択したとき、一つ前のステータス名を選択する画面に戻る
@@ -402,6 +410,7 @@ const data: Subcommand = {
             new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton)
           ];
 
+          // 編集
           await interaction.editReply({
             embeds: [embed],
             components: newRow1
@@ -411,6 +420,7 @@ const data: Subcommand = {
           const nowChannel = client.channels.cache.get(enterButtonInteraction.channelId) as BaseGuildTextChannel;
 
           if (typeof nowChannel !== "undefined") {
+            // チャンネルにステータスを送信
             nowChannel.send(
               `<@${interaction.user.id}>\n` + // メンションを飛ばす
               "```\n" +
@@ -419,6 +429,7 @@ const data: Subcommand = {
             )
           }
 
+          // 返信
           await enterButtonInteraction.followUp({
             content: "登録が完了しました。",
             flags: MessageFlags.Ephemeral

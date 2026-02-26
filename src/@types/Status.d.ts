@@ -11,6 +11,7 @@ interface Status {
   魔力: number;
   俊敏: number;
   HP?: number;
+  AP?: number;
   MP?: number;
   防御力?: number;
   魔法耐性?: number;
