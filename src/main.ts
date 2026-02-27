@@ -26,6 +26,12 @@ export const color: BotColor = {
   default: [255, 120, 80]
 };
 
+export function getRootJSON(name: string) {
+  const dataPath = path.join(__dirname, name);
+  const data = fs.readFileSync(dataPath, "utf-8");
+  return JSON.parse(data);
+}
+
 // あるディレクトリから別のディレクトリまでの相対パスを返す関数
 function getRelativePath(from: string, to: string) {
   return `./${path.relative(from, to)}`;

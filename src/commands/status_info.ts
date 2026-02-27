@@ -1,4 +1,4 @@
-import { color } from "../main.js";
+import { color, getRootJSON } from "../main.js";
 
 import { cleanJSON } from "./status_create.js";
 
@@ -8,13 +8,9 @@ const data: Subcommand = {
   isSubcommand: true,
   async execute(interaction) {
     // ユーザー全員分のデータを読み込む
-    const usersData: UsersData = await import("../users_data.json", {
-      with: {
-        type: "json"
-      }
-    });
+    const usersData: UsersData = getRootJSON("users_data.json");
     // ユーザーのステータスを取得
-    const status = usersData.default[interaction.user.id];
+    const status = usersData[interaction.user.id];
 
     // ステータスが登録済みか判定
     if (typeof status === "undefined") {
