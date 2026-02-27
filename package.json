@@ -6,18 +6,20 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "test": "ts-node src/main.ts",
+    "test": "tsx src/main.ts",
     "compile": "tsc -p .",
     "start": "node build/main.js",
     "all": "npm run compile && npm run start"
   },
-  "includes": ["src/**/*"],
+  "includes": [
+    "src/**/*"
+  ],
   "dependencies": {
     "discord.js": "^14.25.1"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
     "@types/node": "^25.2.3",
-    "ts-node": "^10.9.2"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

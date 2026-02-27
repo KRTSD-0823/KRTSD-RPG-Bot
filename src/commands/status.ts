@@ -1,3 +1,5 @@
+import { checkCommandCooldown } from "../main.js";
+
 import { SlashCommandBuilder } from "discord.js";
 
 const data: Command = {

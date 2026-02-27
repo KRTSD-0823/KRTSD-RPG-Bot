@@ -1,14 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { color } from "../main.js";
+
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
 import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
-
-import descriptionsData from "../description.json" with { type: "json" };
-
-const __dirname = import.meta.dirname;
-const __filename = import.meta.filename;
-const extension = __filename.slice(-2);
 
 // ステータス値を計算してくれるクラス
 class StatusCalculator {
@@ -184,9 +180,6 @@ const data: Subcommand = {
     // HPやMPなどを計算したステータスのオブジェクトを返す
     const statusDataLabel = new StatusCalculator(statusData);
 
-    // 気持ち悪い入れ子
-    const { default: { color } } = await import(`../main.${extension}`) as BotColor;
-
     // 埋め込みを作成
     const embed = new EmbedBuilder()
       .setColor(color.default)
@@ -201,11 +194,6 @@ const data: Subcommand = {
         {
           name: "ステータス",
           value: "```\n" + cleanJSON(JSON.stringify(statusDataLabel.status)) + "\n```"
-        },
-        {
-          name: "ステータスの説明",
-          // 後に更新する
-          value: "```\n ```"
         }
       )
       .setTimestamp();
@@ -279,16 +267,16 @@ const data: Subcommand = {
               .setValue(`${indexString}_${choiceString}`) // ここでは文字列しか使えない
           );
         });
+
         const cancelButton = new ButtonBuilder()
           .setCustomId("cancel")
           .setLabel("戻る")
           .setStyle(ButtonStyle.Danger);
+
         const row2 = [
           new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(valueSelectMenu),
           new ActionRowBuilder<ButtonBuilder>().addComponents(cancelButton)
         ];
-        // ステータスの説明を元の埋め込みに追加
-        embed.data.fields![2]!.value = "```" + descriptionsData.status[statusName] + "```";
         await interaction.editReply({
           embeds: [embed],
           components: row2
@@ -323,6 +311,7 @@ const data: Subcommand = {
         // 元の埋め込みを書き換え
         embed.data.fields![1]!.value = "```" + cleanJSON(JSON.stringify(calculatedStatusData)) + "```";
         embed.data.fields![2]!.value = "```\n ```";
+
         // メッセージを編集(最初の状態に戻す)
         await interaction.editReply({
           embeds: [embed],

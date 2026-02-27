@@ -1,11 +1,12 @@
-import { EmbedBuilder, MessageFlags } from "discord.js";
+import { color } from "../main.js";
 
-const __filename = import.meta.filename;
-const extension = __filename.slice(-2);
+import { cleanJSON } from "./status_create.js";
+
+import { EmbedBuilder, MessageFlags } from "discord.js";
 
 const data: Subcommand = {
   isSubcommand: true,
-  async execute(interaction, client) {
+  async execute(interaction) {
     // ユーザー全員分のデータを読み込む
     const usersData: UsersData = await import("../users_data.json", {
       with: {
@@ -25,14 +26,6 @@ const data: Subcommand = {
       // 中断
       return;
     }
-
-    // 拡張子は動的に変えている
-
-    // 関数読み込み
-    const { cleanJSON } = await import(`./status_create.${extension}`);
-    // 色のデータ読み込み
-    // importしたデータのdefaultにあるcolorを分割代入
-    const { default: { color } } = await import(`../main.${extension}`) as BotColor;
 
     // 埋め込みの作成
     const embed = new EmbedBuilder()

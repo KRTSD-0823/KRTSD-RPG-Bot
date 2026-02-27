@@ -12,7 +12,7 @@ const __filename = import.meta.filename;
 const extension = __filename.slice(-2);
 
 import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
-import type { Message, Interaction, SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
+import type { Message, Interaction, ChatInputCommandInteraction } from "discord.js";
 
 // 必要な情報を取得
 import config from "./config.json" with { type: "json" };
@@ -22,7 +22,7 @@ const { token, clientId, guildId } = config;
 const client: Client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
-const color = {
+export const color: BotColor = {
   default: [255, 120, 80]
 };
 
@@ -37,7 +37,7 @@ function getNowTimestamp() {
 }
 
 // コマンド実行時のユーザーのクールダウンの処理をする関数
-function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
+export function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
   // 取り出す
   const { commandName, command } = cooldownData;
 
@@ -68,15 +68,6 @@ function checkCommandCooldown(client: Client, interaction: ChatInputCommandInter
     return false;
   }
 }
-
-// 他のファイルから読み込めるようにする
-export default {
-  color
-};
-
-// 非推奨ではある
-// グローバル化(?)する(要するに、どのファイルからもアクセスできるようにする)
-(globalThis as any).checkCommandCooldown = checkCommandCooldown;
 
 // コマンドをDiscordに登録する
 (async () => {
