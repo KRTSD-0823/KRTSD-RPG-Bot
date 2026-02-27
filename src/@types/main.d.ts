@@ -9,9 +9,3 @@ declare global {
     [key: string]: Array<number, number, number>;
   }
 }
-
-// 関数
-declare global {
-  // クールダウンか確認して設定する関数
-  function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData): boolean;
-}
