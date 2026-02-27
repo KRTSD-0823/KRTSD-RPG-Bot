@@ -24,7 +24,7 @@ const data: Command = {
     // 型ガード
     if (typeof command === "undefined") return;
 
-    // データにする
+    // クールダウンのデータ
     const cooldownData: CooldownData = {
       commandName: fileName,
       command
