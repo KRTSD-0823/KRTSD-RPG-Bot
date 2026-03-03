@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { color, getRootJSON } from "../main.js";
+import { color, getRootJSON, getRandomStatus, cleanStatusJSON } from "../functions.js";
 
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
 import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
@@ -96,34 +96,6 @@ class StatusCalculator {
   }
 }
 
-// 10から30のランダムな値を3回振る関数
-function getRandomStatus(): Array<number> {
-  const randomValues: Array<number> = [];
-  for (let i = 0; i < 3; i++) {
-    randomValues.push(Math.floor(Math.random() * (30 - (10 + 1)) + (10 + 1)));
-  }
-  return randomValues;
-}
-
-// JSON(文字列)を綺麗にする
-export function cleanJSON(data: string): string {
-  // プロパティ名のダブルクォーテーションを空白に置き換える(無くす)
-  // RegExp(正規表現)の後にgフラグを付けないと一つしか置き換えしてくれない
-  return data.replace(/"(?=.*:)/g, "")
-    // 区切りのコンマを消す
-    .replace(/(?<=[0-9]+\]?),(?![0-9]+)/g, "\n")
-    // 配列のかっこを無くす
-    // 正規表現の\sはあらゆる空白文字(スペース、改行など)を表す
-    .replace(/(?<=:.*)[\[\]]/g, "")
-    // スペースを無くす
-    .replace(/ /g, "")
-    // 半角コロンを全角にする
-    .replace(/:/g, "：")
-    // カギかっこを無くす
-    .replace("{", "")
-    .replace("}", "");
-}
-
 const data: Subcommand = {
   isSubcommand: true,
   cooldown: 3600,
@@ -169,13 +141,13 @@ const data: Subcommand = {
       .setCustomId("statusName")
       .setPlaceholder("ステータス名を選択");
     // 各ステータス名をオプションに追加
-    Object.keys(statusChoices).forEach((name: string) => {
+    Object.keys(statusChoices).forEach((name: string) => 
       nameChoicesMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(name)
           .setValue(name)
-      );
-    });
+      )
+    );
 
     // HPやMPなどを計算したステータスのオブジェクトを返す
     const statusDataLabel = new StatusCalculator(statusData);
@@ -189,11 +161,11 @@ const data: Subcommand = {
         // ここでstatusChoicesとstatusDataを整形したJSON(文字列)に変えている
         {
           name: "選択用ステータス",
-          value: "```\n" + cleanJSON(JSON.stringify(statusChoices)) + "\n```"
+          value: "```\n" + cleanStatusJSON(JSON.stringify(statusChoices)) + "\n```"
         },
         {
           name: "ステータス",
-          value: "```\n" + cleanJSON(JSON.stringify(statusDataLabel.status)) + "\n```"
+          value: "```\n" + cleanStatusJSON(JSON.stringify(statusDataLabel.status)) + "\n```"
         }
       )
       .setTimestamp();
@@ -218,8 +190,9 @@ const data: Subcommand = {
       withResponse: true
     });
 
-    const componentFilter = (i: StringSelectMenuInteraction | ButtonInteraction) => {
-      return i.user.id === interaction.user.id;
+    // フィルターするための関数
+    const componentFilter = function (i: StringSelectMenuInteraction | ButtonInteraction) {
+      return i.user.id === interaction.user.id
     };
 
     // メニューのCollector
@@ -309,7 +282,7 @@ const data: Subcommand = {
         const calculatedStatusData = new StatusCalculator(statusData).status;
 
         // 元の埋め込みを書き換え
-        embed.data.fields![1]!.value = "```" + cleanJSON(JSON.stringify(calculatedStatusData)) + "```";
+        embed.data.fields![1]!.value = "```" + cleanStatusJSON(JSON.stringify(calculatedStatusData)) + "```";
         embed.data.fields![2]!.value = "```\n ```";
 
         // メッセージを編集(最初の状態に戻す)
@@ -350,7 +323,7 @@ const data: Subcommand = {
         // replyはInteractionCallbackResponseオブジェクトが返ってくる
         const enterButtonMessage = await i.followUp({
           content: "```\n" +
-            cleanJSON(JSON.stringify(finalStatusData.status)) +
+            cleanStatusJSON(JSON.stringify(finalStatusData.status)) +
             "\n```\n以上のステータスを登録します。",
           components: [row3],
           flags: MessageFlags.Ephemeral,
@@ -413,7 +386,7 @@ const data: Subcommand = {
             nowChannel.send(
               `<@${interaction.user.id}>\n` + // メンションを飛ばす
               "```\n" +
-              cleanJSON(JSON.stringify(finalStatusData.status)) +
+              cleanStatusJSON(JSON.stringify(finalStatusData.status)) +
               "\n```"
             )
           }

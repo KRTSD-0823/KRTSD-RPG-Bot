@@ -1,8 +1,3 @@
-// const fs = require("node:fs");
-// const path = require("node:path");
-import fs from "node:fs";
-import path from "node:path";
-
 // __dirname, __filenameの宣言
 // ES moduleでは元から宣言されていない
 const __dirname = import.meta.dirname;
@@ -11,8 +6,13 @@ const __filename = import.meta.filename;
 // tsファイルでのテストとjsファイルでの実行の時で拡張子が変わるから、あらかじめ拡張子を宣言しておく
 const extension = __filename.slice(-2);
 
+import { getRelativePath, checkCommandCooldown } from "./functions.js";
+
+import fs from "node:fs";
+import path from "node:path";
+
 import { Client, GatewayIntentBits, Collection, Events, MessageFlags } from "discord.js";
-import type { Message, Interaction, ChatInputCommandInteraction } from "discord.js";
+import type { Message, Interaction } from "discord.js";
 
 // 必要な情報を取得
 import config from "./config.json" with { type: "json" };
@@ -20,60 +20,6 @@ const { token, clientId, guildId } = config;
 
 // clientの設定
 const client: Client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
-
-// 色(埋め込みなど)を他ファイルでも読み込めるようにする
-export const color: BotColor = {
-  default: [255, 120, 80]
-};
-
-export function getRootJSON(name: string) {
-  const dataPath = path.join(__dirname, name);
-  const data = fs.readFileSync(dataPath, "utf-8");
-  return JSON.parse(data);
-}
-
-// あるディレクトリから別のディレクトリまでの相対パスを返す関数
-function getRelativePath(from: string, to: string) {
-  return `./${path.relative(from, to)}`;
-}
-
-// 現在時刻のタイムスタンプを秒単位で返す
-function getNowTimestamp() {
-  return Math.floor(Date.now() / 1000);
-}
-
-// コマンド実行時のユーザーのクールダウンの処理をする関数
-export function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
-  // 取り出す
-  const { commandName, command } = cooldownData;
-
-  // クールダウンが存在しないコマンドなら中断
-  if (!("cooldown" in command)) return false;
-
-  // ユーザーごとのクールダウンを読み込む
-  const cooldown = client.cooldown.get(interaction.user.id);
-  const userCooldown = cooldown?.[commandName] ?? 0;
-  const nowTimestamp = getNowTimestamp();
-  // クールダウン中か判定する
-  if (nowTimestamp < userCooldown) {
-    // クールダウンの時
-    // 次に実行できる時間のタイムスタンプを取得
-    const nextTimestamp = userCooldown?.toString();
-    // 返信
-    interaction.reply({
-      content: `クールダウン中です。\`${commandName}\`は <t:${nextTimestamp}:R> に使用できます。`,
-      flags: MessageFlags.Ephemeral
-    });
-    return true;
-  } else {
-    // クールダウン中じゃない時
-    // クールダウンを設定
-    client.cooldown.set(interaction.user.id, {
-      [commandName]: nowTimestamp + command.cooldown
-    });
-    return false;
-  }
-}
 
 // コマンドをDiscordに登録する
 (async () => {
@@ -149,8 +95,6 @@ client.once(Events.ClientReady, () => {
 // client.on(Events.MessageCreate, async (message: Message) => {
 //   // 送信者がBotか自身なら無視
 //   if (message.author.bot || client.user!.id === message.author.id) return;
-
-//   // await message.reply("I was made of TypeScript!");
 // });
 
 // コマンドの受信時

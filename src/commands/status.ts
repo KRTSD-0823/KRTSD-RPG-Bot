@@ -1,4 +1,4 @@
-import { checkCommandCooldown } from "../main.js";
+import { checkCommandCooldown } from "../functions.js";
 
 import { SlashCommandBuilder } from "discord.js";
 

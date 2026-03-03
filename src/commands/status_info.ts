@@ -1,6 +1,4 @@
-import { color, getRootJSON } from "../main.js";
-
-import { cleanJSON } from "./status_create.js";
+import { color, getRootJSON, cleanStatusJSON } from "../functions.js";
 
 import { EmbedBuilder, MessageFlags } from "discord.js";
 
@@ -32,7 +30,7 @@ const data: Subcommand = {
       .addFields(
         {
           name: "ステータス",
-          value: "```" + cleanJSON(JSON.stringify(status)) + "```"
+          value: "```" + cleanStatusJSON(JSON.stringify(status)) + "```"
         }
       );
     await interaction.reply({
