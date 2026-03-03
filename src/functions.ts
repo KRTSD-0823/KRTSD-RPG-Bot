@@ -13,19 +13,25 @@ export const color: BotColor = {
   default: [255, 120, 80]
 };
 
+// ルート(src)にあるJSONファイルを読み込む関数
 function getRootJSON(name: string) {
+  // パスの取得
   const dataPath = path.join(__dirname, name);
+  // 読み込む
   const data = fs.readFileSync(dataPath, "utf-8");
+  // オブジェクトに変換
   return JSON.parse(data);
 }
 
 // あるディレクトリから別のディレクトリまでの相対パスを返す関数
 function getRelativePath(from: string, to: string) {
+  // パスの文字列にする
   return `./${path.relative(from, to)}`;
 }
 
 // 現在時刻のタイムスタンプを秒単位で返す関数
 function getNowTimestamp() {
+  // Date.now()はミリ秒まで返すため、÷1000で秒に変換
   return Math.floor(Date.now() / 1000);
 }
 
@@ -118,7 +124,6 @@ function parsePage(text: string) {
   const regexp = /(?<=.*\()[0-9]+(?=\/[0-9]+\))/;
   // 抜き出す
   const page = regexp.exec(text)?.[0];
-
   // 数字に変える
   return Number(page);
 }
@@ -133,7 +138,6 @@ function getPaging(array: Array<any>, current: number, to?: number) {
     // -1で調整
     (difference - 1) % array.length :
     ((array.length + difference) - 1) % array.length;
-
   return array[index];
 }
 
