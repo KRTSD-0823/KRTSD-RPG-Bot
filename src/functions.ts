@@ -5,8 +5,8 @@ const __dirname = import.meta.dirname;
 import fs from "node:fs";
 import path from "node:path";
 
-import { MessageFlags, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
-import type { Client, ChatInputCommandInteraction, InteractionCallbackResponse } from "discord.js";
+import { MessageFlags, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ComponentType } from "discord.js";
+import type { Client, ChatInputCommandInteraction, ButtonInteraction, MessageComponentInteraction, InteractionCallbackResponse } from "discord.js";
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
 export const color: BotColor = {
@@ -191,7 +191,7 @@ function checkCommandCooldown(client: Client, interaction: ChatInputCommandInter
 function setComponentCollector(
   response: InteractionCallbackResponse,
   componentType: ComponentCollectorComponentType,
-  filter: ComponentFilter
+  filter?: ComponentFilter
 ) {
   // オプションの設定
   const options: ComponentsCollectorOptions = {
@@ -237,6 +237,41 @@ class PagingButton {
   }
 }
 
+// ページングのメッセージのボタンの処理用の関数
+function executePagingComponentCollector(interaction: ChatInputCommandInteraction, response: InteractionCallbackResponse, embeds: Array<EmbedBuilder>) {
+  // フィルター
+  const collectorFilter = (i: MessageComponentInteraction) => interaction.user.id === i.user.id;
+
+  // 受信するためのcollector
+  const collector = setComponentCollector(response, ComponentType.Button, collectorFilter);
+
+  collector?.on("collect", async (i: ButtonInteraction) => {
+    // インタラクションに失敗しました対策
+    await i.deferUpdate();
+
+    // 現在のページを取得
+    const currentPage = parsePage(i.message.embeds[0]!.data.title!);
+    // 進むボタンか戻るボタンか判定
+    if (i.customId === "next") {
+      // 次のページを取得
+      const nextEmbed = getPaging(embeds, currentPage, 1);
+      // 編集
+      await interaction.editReply({
+        embeds: [nextEmbed],
+        components: i.message.components
+      });
+    } else if (i.customId === "back") {
+      // 前のページを取得
+      const nextEmbed = getPaging(embeds, currentPage, -1);
+      // 編集
+      await interaction.editReply({
+        embeds: [nextEmbed],
+        components: i.message.components
+      });
+    }
+  });
+}
+
 // ここでexport
 export {
   getRootJSON,
@@ -251,5 +286,6 @@ export {
   setPagingEmbeds,
   checkCommandCooldown,
   setComponentCollector,
-  PagingButton
+  PagingButton,
+  executePagingComponentCollector
 }
