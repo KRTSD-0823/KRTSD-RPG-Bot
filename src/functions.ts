@@ -9,7 +9,7 @@ import { MessageFlags, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilde
 import type { Client, ChatInputCommandInteraction, ButtonInteraction, MessageComponentInteraction, InteractionCallbackResponse } from "discord.js";
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
-export const color: BotColor = {
+const color: BotColor = {
   default: [255, 120, 80]
 };
 
@@ -279,6 +279,7 @@ function executePagingComponentCollector(interaction: ChatInputCommandInteractio
 
 // ここでexport
 export {
+  color,
   getRootJSON,
   getRelativePath,
   getNowTimestamp,
