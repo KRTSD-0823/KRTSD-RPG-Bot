@@ -16,37 +16,6 @@ declare global {
 	}
 }
 
-// exportするコマンドのデータの型
-declare global {
-	interface Command {
-		// サブコマンドが設定されてる場合も考慮
-		data: SlashCommandBuilder | SlashCommandBuilder<SlashCommandSubcommandBuilder>;
-		// 秒数で指定
-		cooldown?: number;
-		// 非同期(async)関数だから返値はPromise
-		execute?: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
-	}
-}
-
-// サブコマンドの型
-declare global {
-	interface Subcommand {
-		isSubcommand: true;
-		cooldown?: number;
-		execute: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
-	}
-}
-
-// コマンドのファイルをimportした時の中身の型
-declare global {
-	interface OriginCommand {
-		default: Command
-	}
-	interface OriginSubcommand {
-		default: Subcommand
-	}
-}
-
 // client.commandsとstatusNameを参照しようとした時の警告を無くすために必要
 // Collection使うときには適宜追加
 declare module "discord.js" {
