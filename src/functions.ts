@@ -14,13 +14,18 @@ export const color: BotColor = {
 };
 
 // ルート(src)にあるJSONファイルを読み込む関数
-function getRootJSON(name: string) {
+function getRootJSON(fileName: string) {
   // パスの取得
-  const dataPath = path.join(__dirname, name);
-  // 読み込む
-  const data = fs.readFileSync(dataPath, "utf-8");
-  // オブジェクトに変換
-  return JSON.parse(data);
+  const dataPath = path.join(__dirname, fileName);
+  //エラーハンドリング
+  try {
+    // 読み込む
+    const data = fs.readFileSync(dataPath, "utf-8");
+    // オブジェクトに変換
+    return JSON.parse(data);
+  } catch(error) {
+    console.error(`${fileName}の読み込み時にエラーが発生しました。\n`, error);
+  }
 }
 
 // あるディレクトリから別のディレクトリまでの相対パスを返す関数
