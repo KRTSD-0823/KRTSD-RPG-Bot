@@ -66,6 +66,10 @@ client.subcommands = new Collection();
     (async () => {
       const command: OriginCommand | OriginSubcommand = await import(relativePath);
       const data = command.default;
+
+      // exportされていないときなどは飛ばす
+      if (typeof data === "undefined") return;
+
       // サブコマンドかどうか判定
       if (!("isSubcommand" in data)) {
         // サブコマンドじゃない時
@@ -99,7 +103,7 @@ client.once(Events.ClientReady, () => {
 
 // コマンドの受信時
 client.on(Events.InteractionCreate, async (interaction: Interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
   // コマンド名を取得
   const { commandName } = interaction;
@@ -109,32 +113,41 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 
   // コマンドの処理が設定されているかチェック
   if (typeof command === "undefined" || !("execute" in command)) {
-    // コマンドの処理が設定されていなかった場合
-    await interaction.reply({
-      content: "このコマンドは未実装です。",
-      flags: MessageFlags.Ephemeral
-    });
+    // オートコンプリートにはreplyメソッドがないため、それ以外の時には返信
+    if (!interaction.isAutocomplete()) {
+      // コマンドの処理が設定されていなかった場合
+      await interaction.reply({
+        content: "このコマンドは未実装です。",
+        flags: MessageFlags.Ephemeral
+      });
+    }
     // 中断
     return;
   }
 
-  // クールダウンの情報をデータにする
-  const cooldownData = {
-    commandName,
-    command
-  };
-  // クールダウン中か判定・設定
-  const isCooldown = checkCommandCooldown(client, interaction, cooldownData);
-  // クールダウン中なら中断
-  if (isCooldown) return;
+  // クールダウンはオートコンプリートに存在しないため除外
+  if (!interaction.isAutocomplete()) {
+    // クールダウンの情報をデータにする
+    const cooldownData = {
+      commandName,
+      command
+    };
+    // クールダウン中か判定・設定
+    const isCooldown = checkCommandCooldown(client, interaction, cooldownData);
+    // クールダウン中なら中断
+    if (isCooldown) return;
+  }
 
   // エラーハンドリング
   try {
     // 処理の実行
     await command.execute(interaction, client);
-  } catch (e) {
+  } catch (error) {
     // エラー時
-    console.error(e);
+    console.error(error);
+
+    // 処理が煩雑になるから、オートコンプリートならここで中断
+    if (interaction.isAutocomplete()) return;
 
     if (!interaction.replied) {
       interaction.reply({

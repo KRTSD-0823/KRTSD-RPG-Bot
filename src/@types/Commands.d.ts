@@ -1,6 +1,9 @@
 // コマンドに関する型をまとめたファイル
 
-import type { Client, SlashCommandBuilder, SlashCommandSubcommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import type { Client, SlashCommandBuilder, SlashCommandSubcommandBuilder, ChatInputCommandInteraction, Interaction, AutocompleteInteraction } from "discord.js";
+
+// 受け取るインタラクションの型
+type Interactions = ChatInputCommandInteraction | AutocompleteInteraction;
 
 // exportするコマンドのデータの型
 declare global {
@@ -10,7 +13,8 @@ declare global {
 		// 秒数で指定
 		cooldown?: number;
 		// 非同期(async)関数だから返値はPromise
-		execute?: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
+		autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
+		execute?: (interaction: Interactions, client: Client) => Promise<void>;
 	}
 }
 
@@ -19,6 +23,7 @@ declare global {
 	interface Subcommand {
 		isSubcommand: true;
 		cooldown?: number;
+		autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 		execute: (interaction: ChatInputCommandInteraction, client: Client) => Promise<void>;
 	}
 }
