@@ -1,4 +1,4 @@
-import { color, concatShopString, splitArray, setPagingEmbeds, parsePage, getPaging, setComponentCollector, PagingButton, executePagingComponentCollector } from "../functions.js";
+import { color, concatShopString, splitArray, setPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector } from "../functions.js";
 
 import { EmbedBuilder, MessageFlags } from "discord.js";
 
