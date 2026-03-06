@@ -9,12 +9,12 @@ import { MessageFlags, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilde
 import type { Client, ChatInputCommandInteraction, ButtonInteraction, MessageComponentInteraction, InteractionCallbackResponse } from "discord.js";
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
-const color: BotColor = {
+export const color: BotColor = {
   default: [255, 120, 80]
 };
 
 // ルート(src)にあるJSONファイルを読み込む関数
-function getRootJSON(fileName: string) {
+export function getRootJSON(fileName: string) {
   // パスの取得
   const dataPath = path.join(__dirname, fileName);
   //エラーハンドリング
@@ -28,20 +28,33 @@ function getRootJSON(fileName: string) {
   }
 }
 
+// getRootJSONの書き込み版
+export function setRootJSON(fileName: string, data: string) {
+  // パスの取得
+  const dataPath = path.join(__dirname, fileName);
+  //エラーハンドリング
+  try {
+    // 設定する
+    fs.writeFileSync(dataPath, data);
+  } catch(error) {
+    console.error(`${fileName}の保存でエラーが発生しました。\n`, error);
+  }
+}
+
 // あるディレクトリから別のディレクトリまでの相対パスを返す関数
-function getRelativePath(from: string, to: string) {
+export function getRelativePath(from: string, to: string) {
   // パスの文字列にする
   return `./${path.relative(from, to)}`;
 }
 
 // 現在時刻のタイムスタンプを秒単位で返す関数
-function getNowTimestamp() {
+export function getNowTimestamp() {
   // Date.now()はミリ秒まで返すため、÷1000で秒に変換
   return Math.floor(Date.now() / 1000);
 }
 
 // 10から30のランダムな値を3回振る関数
-function getRandomStatus() {
+export function getRandomStatus() {
   // 保存する配列
   const randomValues: Array<number> = [];
   for (let i = 0; i < 3; i++) {
@@ -51,8 +64,8 @@ function getRandomStatus() {
   return randomValues;
 }
 
-// JSON化したステータス(文字列)を綺麗にする
-function cleanStatusJSON(data: string) {
+// ユーザーのデータ(JSON)を整える
+export function cleanUserDataJSON(data: string) {
   // RegExp(正規表現)の後にgフラグを付けないと一つしか置き換えしてくれない
   return data
     // プロパティ名のダブルクォーテーションを空白に置き換える(無くす)
@@ -72,7 +85,7 @@ function cleanStatusJSON(data: string) {
 }
 
 // shop_data.jsonのデータを整形した文字列の配列にする関数
-function concatShopString(last?: string) {
+export function concatShopString(last?: string) {
   // ショップのデータを持ってくる
   const shop: ShopData = getRootJSON("shop_data.json");
 
@@ -98,7 +111,7 @@ function concatShopString(last?: string) {
 }
 
 // 配列の文字列を指定した文字数以上にならないように連結する関数
-function splitArray(data: Array<string>, count: number) {
+export function splitArray(data: Array<string>, count: number) {
   return data.reduce((previous: Array<string>, current) => {
     // どこを操作するかの値
     const index = previous.length > 0 ? previous.length - 1 : 0;
@@ -124,7 +137,7 @@ function splitArray(data: Array<string>, count: number) {
 }
 
 // 文字に含まれる現在のページを抜き出す
-function parsePage(text: string) {
+export function parsePage(text: string) {
   // 正規表現
   const regexp = /(?<=.*\()[0-9]+(?=\/[0-9]+\))/;
   // 抜き出す
@@ -134,7 +147,7 @@ function parsePage(text: string) {
 }
 
 // 指定したページの要素を取り出す(ページング機能)
-function getPaging(array: Array<any>, current: number, to?: number) {
+export function getPaging(array: Array<any>, current: number, to?: number) {
   // 移動後のページ数を入れる
   const difference = current + (to ?? 0);
   // 次のページの計算
@@ -147,7 +160,7 @@ function getPaging(array: Array<any>, current: number, to?: number) {
 }
 
 // ページングのための埋め込みを作成
-function setPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
+export function setPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
   return embeds.map((emb, index) => {
     // 新しいEmbedBuilderを作成
     // 直接操作すると、参照渡しの影響なのか全部が同じ要素になってしまう
@@ -159,7 +172,11 @@ function setPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
 }
 
 // コマンド実行時のユーザーのクールダウンの処理をする関数
-function checkCommandCooldown(client: Client, interaction: ChatInputCommandInteraction, cooldownData: CooldownData) {
+export function checkCommandCooldown(
+    client: Client,
+    interaction: ChatInputCommandInteraction,
+    cooldownData: CooldownData
+) {
   // 取り出す
   const { commandName, command } = cooldownData;
 
@@ -192,8 +209,8 @@ function checkCommandCooldown(client: Client, interaction: ChatInputCommandInter
   }
 }
 
-// ボタンの受信、メニューの受信などのためのCollectorを取得する関数
-function setComponentCollector(
+// ボタンの受信、メニューの受信などのためのCollectorを設定する関数
+export function createComponentCollector(
   response: InteractionCallbackResponse,
   componentType: ComponentCollectorComponentType,
   filter?: ComponentFilter
@@ -214,7 +231,7 @@ function setComponentCollector(
 
 // ページングのボタンを作成するクラス
 // 限定的
-class PagingButton {
+export class PagingButton {
   // rowプロパティにActionRowを入れる
   row: ActionRowBuilder<ButtonBuilder>;
   constructor() {
@@ -243,12 +260,16 @@ class PagingButton {
 }
 
 // ページングのメッセージのボタンの処理用の関数
-function executePagingComponentCollector(interaction: ChatInputCommandInteraction, response: InteractionCallbackResponse, embeds: Array<EmbedBuilder>) {
+export function executePagingComponentCollector(
+    interaction: ChatInputCommandInteraction,
+    response: InteractionCallbackResponse,
+    embeds: Array<EmbedBuilder>
+) {
   // フィルター
   const collectorFilter = (i: MessageComponentInteraction) => interaction.user.id === i.user.id;
 
   // 受信するためのcollector
-  const collector = setComponentCollector(response, ComponentType.Button, collectorFilter);
+  const collector = createComponentCollector(response, ComponentType.Button, collectorFilter);
 
   collector?.on("collect", async (i: ButtonInteraction) => {
     // インタラクションに失敗しました対策
@@ -275,23 +296,4 @@ function executePagingComponentCollector(interaction: ChatInputCommandInteractio
       });
     }
   });
-}
-
-// ここでexport
-export {
-  color,
-  getRootJSON,
-  getRelativePath,
-  getNowTimestamp,
-  getRandomStatus,
-  cleanStatusJSON,
-  concatShopString,
-  splitArray,
-  parsePage,
-  getPaging,
-  setPagingEmbeds,
-  checkCommandCooldown,
-  setComponentCollector,
-  PagingButton,
-  executePagingComponentCollector
 }
