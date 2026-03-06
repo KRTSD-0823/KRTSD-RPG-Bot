@@ -1,7 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
-
-import { color, getRootJSON, getRandomStatus, cleanStatusJSON } from "../functions.js";
+import { color, getRootJSON, setRootJSON, getRandomStatus, cleanUserDataJSON, createComponentCollector } from "../functions.js";
 
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
 import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
@@ -102,8 +99,10 @@ const data: Subcommand = {
   async execute(interaction, client) {
     // ユーザー全体のデータ(users_data.json)を取得
     const usersData: UsersData = getRootJSON("users_data.json");
+    // idを取得
+    const userId = interaction.user.id;
     // 既に登録されているか判定
-    if (interaction.user.id in usersData) {
+    if (userId in usersData && "status" in usersData[userId]!) {
       // 返信
       await interaction.reply({
         content: "既にステータスを作成しています。",
@@ -161,11 +160,11 @@ const data: Subcommand = {
         // ここでstatusChoicesとstatusDataを整形したJSON(文字列)に変えている
         {
           name: "選択用ステータス",
-          value: "```\n" + cleanStatusJSON(JSON.stringify(statusChoices)) + "\n```"
+          value: "```\n" + cleanUserDataJSON(JSON.stringify(statusChoices)) + "\n```"
         },
         {
           name: "ステータス",
-          value: "```\n" + cleanStatusJSON(JSON.stringify(statusDataLabel.status)) + "\n```"
+          value: "```\n" + cleanUserDataJSON(JSON.stringify(statusDataLabel.status)) + "\n```"
         }
       )
       .setTimestamp();
@@ -196,18 +195,13 @@ const data: Subcommand = {
     };
 
     // メニューのCollector
-    const stringMenuCollector = response.resource?.message?.createMessageComponentCollector({
-      componentType: ComponentType.StringSelect,
-      filter: componentFilter
-    });
+    const stringMenuCollector = createComponentCollector(response, ComponentType.StringSelect, componentFilter);
+
     // ボタンが押された時のCollector
-    const buttonCollector = response.resource?.message?.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      filter: componentFilter
-    });
+    const buttonCollector = createComponentCollector(response, ComponentType.Button, componentFilter);
 
     // Collectorでメニューが選択された時の処理をする
-    stringMenuCollector?.on("collect", async (i) => {
+    stringMenuCollector?.on("collect", async (i: StringSelectMenuInteraction) => {
       // 選択されたメニューの値
       const [value] = i.values;
 
@@ -229,6 +223,8 @@ const data: Subcommand = {
         const valueSelectMenu = new StringSelectMenuBuilder()
           .setCustomId("statusValue")
           .setPlaceholder(`${statusName}の値を選択`);
+        
+        // valueChoicesの全ての要素に対して処理
         valueChoices.forEach((choice: number, i) => {
           // choiceとiは数字型なので文字列型にしてあげる(別定数に代入)
           const choiceString: string = choice.toString();
@@ -241,15 +237,18 @@ const data: Subcommand = {
           );
         });
 
+        // 戻るボタン
         const cancelButton = new ButtonBuilder()
           .setCustomId("cancel")
           .setLabel("戻る")
           .setStyle(ButtonStyle.Danger);
 
+        // ActionRowの作成(ステータスの値の選択用)
         const row2 = [
           new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(valueSelectMenu),
           new ActionRowBuilder<ButtonBuilder>().addComponents(cancelButton)
         ];
+
         await interaction.editReply({
           embeds: [embed],
           components: row2
@@ -262,28 +261,28 @@ const data: Subcommand = {
         const statusName = client.statusName.get(i.message.id) as StatusKey;
         // valueから選択されたステータス値を取り出す
         const statusValue = isValueRegExp.exec(value)?.[0];
+
         // 正しいものか判定
         if (typeof statusValue === "string" && statusName in statusData) {
           // 数値化して代入
           statusData[statusName] = parseInt(statusValue);
         }
 
-        // キーと値を配列にする
-        const statusDataEntries = Object.entries(statusData);
+        // 値を配列にし、その配列に対して条件をかける
         // 全部のステータスが入力されたか判定する
-        const isAllSet = statusDataEntries.every(([, value]) => value > 0);
+        const isAllSet = Object.values(statusData).every((value: number) => value > 0);
         // 全ステータスが埋まってる時の処理
         if (isAllSet) {
-          const buttonData = row1[1]?.components[0]?.data;
-          // 送信するボタンの無効化を解除
-          buttonData!.disabled = false;
+          // 無効化を解除(送信できるようにする)
+          confirmButton.setDisabled(false);
+          // 無理やり変更
+          (row1[1] as ActionRowBuilder<ButtonBuilder>)?.setComponents(confirmButton);
         }
         // ステータスの計算
         const calculatedStatusData = new StatusCalculator(statusData).status;
 
         // 元の埋め込みを書き換え
-        embed.data.fields![1]!.value = "```" + cleanStatusJSON(JSON.stringify(calculatedStatusData)) + "```";
-        embed.data.fields![2]!.value = "```\n ```";
+        embed.data.fields![1]!.value = "```\n" + cleanUserDataJSON(JSON.stringify(calculatedStatusData)) + "\n```";
 
         // メッセージを編集(最初の状態に戻す)
         await interaction.editReply({
@@ -311,6 +310,7 @@ const data: Subcommand = {
           flags: MessageFlags.Ephemeral
         });
 
+        // 最終のステータス
         const finalStatusData = new StatusCalculator(statusData);
 
         // 作成を確定するボタン
@@ -318,12 +318,14 @@ const data: Subcommand = {
           .setCustomId("enter")
           .setLabel("確定する")
           .setStyle(ButtonStyle.Success);
+
         const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
+
         // followUpはMessageオブジェクトが返ってくる
         // replyはInteractionCallbackResponseオブジェクトが返ってくる
         const enterButtonMessage = await i.followUp({
           content: "```\n" +
-            cleanStatusJSON(JSON.stringify(finalStatusData.status)) +
+            cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
             "\n```\n以上のステータスを登録します。",
           components: [row3],
           flags: MessageFlags.Ephemeral,
@@ -337,7 +339,7 @@ const data: Subcommand = {
         });
 
         // 確定ボタンが押された時の処理
-        enterButtonCollector?.on("collect", async (enterButtonInteraction) => {
+        enterButtonCollector?.on("collect", async (enterButtonInteraction: ButtonInteraction) => {
           // 決定ボタンを無効化(選択できないように)する
           enterButton.setDisabled(true);
           const newRow3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
@@ -353,13 +355,16 @@ const data: Subcommand = {
             flags: MessageFlags.Ephemeral
           });
 
-          // 万が一、違う人が押してしまってもいいようにinteractionから取得している
-          const userId = interaction.user.id;
-          // 設定
-          usersData[userId] = finalStatusData.status;
-          const usersDataPath = path.join(__dirname, "../users_data.json");
+          // ステータスの設定と所持金の初期化
+          usersData[userId] = {
+            status: finalStatusData.status,
+            inventory: {
+              gold: 1000
+            }
+          };
+
           // ユーザーのデータを保存する
-          fs.writeFileSync(usersDataPath, JSON.stringify(usersData, null, 2));
+          setRootJSON("users_data.json", JSON.stringify(usersData, null, 2));
 
           // ステータス名を選ぶメニューを無効化する
           nameChoicesMenu.setDisabled(true);
@@ -367,15 +372,14 @@ const data: Subcommand = {
           // 送信するボタンを無効化する
           confirmButton.setDisabled(true);
 
-          const newRow1 = [
-            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(nameChoicesMenu),
-            new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton)
-          ];
+          // rowの再設定
+          (row1[0] as ActionRowBuilder<StringSelectMenuBuilder>)?.setComponents(nameChoicesMenu);
+          (row1[1] as ActionRowBuilder<ButtonBuilder>)?.setComponents(confirmButton);
 
           // 編集
           await interaction.editReply({
             embeds: [embed],
-            components: newRow1
+            components: row1
           });
 
           // BaseGuildTextChannelって型を付けてあげないとsendメソッドが出てこない
@@ -386,7 +390,7 @@ const data: Subcommand = {
             nowChannel.send(
               `<@${interaction.user.id}>\n` + // メンションを飛ばす
               "```\n" +
-              cleanStatusJSON(JSON.stringify(finalStatusData.status)) +
+              cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
               "\n```"
             )
           }
