@@ -15,6 +15,8 @@ const data: Command = {
         .setName("info")
         .setDescription("ユーザーのステータスを表示")),
   async execute(interaction, client) {
+    if (interaction.isAutocomplete()) return;
+
     const { commandName } = interaction;
     // サブコマンド名を取得
     const subcommandName = interaction.options.getSubcommand();
