@@ -132,8 +132,10 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
       commandName,
       command
     };
+
     // クールダウン中か判定・設定
     const isCooldown = checkCommandCooldown(client, interaction, cooldownData);
+
     // クールダウン中なら中断
     if (isCooldown) return;
   }
