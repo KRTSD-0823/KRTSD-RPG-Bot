@@ -64,6 +64,32 @@ export function getRandomStatus() {
   return randomValues;
 }
 
+// 配列の文字列を指定した文字数以上にならないように連結する関数
+export function splitArray(data: Array<string>, count: number) {
+  return data.reduce((previous: Array<string>, current) => {
+    // どこを操作するかの値
+    const index = previous.length > 0 ? previous.length - 1 : 0;
+
+    // 存在しているかの確認
+    if (typeof previous[index] === "undefined") {
+      // 挿入
+      previous.push("");
+    }
+
+    // 指定された文字数より多くならないようにする
+    if ((previous[index] + current).length <= count) {
+      // 追加
+      previous[index] += current;
+    } else {
+      // 新しく挿入
+      previous.push(current);
+    }
+
+    // previousを次に回す
+    return previous;
+  }, []);
+}
+
 // ユーザーのデータ(JSON)を整える
 export function cleanUserDataJSON(data: string) {
   // RegExp(正規表現)の後にgフラグを付けないと一つしか置き換えしてくれない
@@ -107,32 +133,6 @@ export function concatShopString(last?: string) {
     );
     // 返す(currentStringを次に回す)
     return current;
-  }, []);
-}
-
-// 配列の文字列を指定した文字数以上にならないように連結する関数
-export function splitArray(data: Array<string>, count: number) {
-  return data.reduce((previous: Array<string>, current) => {
-    // どこを操作するかの値
-    const index = previous.length > 0 ? previous.length - 1 : 0;
-
-    // 存在しているかの確認
-    if (typeof previous[index] === "undefined") {
-      // 挿入
-      previous.push("");
-    }
-
-    // 指定された文字数より多くならないようにする
-    if ((previous[index] + current).length <= count) {
-      // 追加
-      previous[index] += current;
-    } else {
-      // 新しく挿入
-      previous.push(current);
-    }
-
-    // previousを次に回す
-    return previous;
   }, []);
 }
 
