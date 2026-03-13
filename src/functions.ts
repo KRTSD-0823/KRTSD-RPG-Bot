@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { MessageFlags, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ComponentType } from "discord.js";
-import type { Client, ChatInputCommandInteraction, ButtonInteraction, MessageComponentInteraction, InteractionCallbackResponse } from "discord.js";
+import type { Client, ChatInputCommandInteraction, ButtonInteraction, MessageComponentInteraction, InteractionCallbackResponse, User } from "discord.js";
 
 // 色(埋め込みなど)を他ファイルでも読み込めるようにする
 export const color: BotColor = {
@@ -110,15 +110,15 @@ export function cleanUserDataJSON(data: string) {
     .replace("}", "");
 }
 
-// shop_data.jsonのデータを整形した文字列の配列にする関数
-export function concatShopString(last?: string) {
-  // ショップのデータを持ってくる
-  const shop: ShopData = getRootJSON("shop_data.json");
+// アイテムのデータを整形した文字列の配列にする関数
+export function concatItems(itemsData: Array<Items> | undefined, last?: string) {
+  // 型ガード
+  if (typeof itemsData === "undefined") return;
 
   // 全て順次に処理して返す
-  return shop.data.reduce((current: Array<string>, shopData) => {
+  return itemsData.reduce((current: Array<string>, data) => {
     // 取り出す
-    const { 名前, 種類, 値段, 威力, 説明 } = shopData;
+    const { 名前, 種類, 値段, 威力, 説明 } = data;
     // 内容を追加
     current.push(
       "```\n" +
@@ -134,6 +134,47 @@ export function concatShopString(last?: string) {
     // 返す(currentStringを次に回す)
     return current;
   }, []);
+}
+
+export function getUserData(id: string) {
+  // ユーザー全体を取得
+  const usersData = getRootJSON("users_data.json");
+
+  // idが存在してるかどうかの判定
+  if (id in usersData) {
+    // 型付けのために一度代入
+    const userData: UserData = usersData[id];
+    // データを返す
+    return userData
+  } else {
+    // 何も返さない(undefined)
+    return undefined;
+  }
+}
+
+// ユーザーのデータをusers_data.jsonに直接保存する関数
+export function setUserData(id: string, data: UserData) {
+  // 全体のデータを取得
+  const usersData: UsersData = getRootJSON("users_data.json");
+  // ユーザーの場所にデータを設定
+  usersData[id] = data;
+  // 保存
+  setRootJSON("users_data.json", JSON.stringify(usersData, null, 2));
+
+  // 設定後の全体のデータを返す
+  return usersData;
+}
+
+// ユーザーの持ち物のデータを設定する関数
+export function initializeInventoryData(data: UserData) {
+  // 設定
+  data.inventory = {
+    gold: 1000,
+    items: []
+  };
+
+  // 参照渡しなので実行のみでも大丈夫だが、念のため設定後のデータを返す
+  return data;
 }
 
 // 文字に含まれる現在のページを抜き出す
@@ -160,7 +201,7 @@ export function getPaging(array: Array<any>, current: number, to?: number) {
 }
 
 // ページングのための埋め込みを作成
-export function setPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
+export function createPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
   return embeds.map((emb, index) => {
     // 新しいEmbedBuilderを作成
     // 直接操作すると、参照渡しの影響なのか全部が同じ要素になってしまう
@@ -169,6 +210,36 @@ export function setPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
     tempEmbed.setTitle(`${title}(${index + 1}/${embeds.length})`);
     return tempEmbed;
   });
+}
+
+// ページングのボタンを作成するクラス
+// 限定的
+export class PagingButton {
+  // rowプロパティにActionRowを入れる
+  row: ActionRowBuilder<ButtonBuilder>;
+  constructor() {
+    // ボタンの初期化
+    const buttons = [
+      new ButtonBuilder()
+        .setCustomId("back")
+        .setLabel("前に戻る")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("⏪"),
+      new ButtonBuilder()
+        .setCustomId("next")
+        .setLabel("次に進む")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("⏩")
+    ];
+
+    // buttons全てに処理をし、二つのボタンを合わせたActionRowを作る
+    const row = buttons.reduce((previous, button) => {
+      return new ActionRowBuilder<ButtonBuilder>(previous).addComponents(button);
+    }, new ActionRowBuilder<ButtonBuilder>);
+
+    // 設定
+    this.row = row;
+  }
 }
 
 // コマンド実行時のユーザーのクールダウンの処理をする関数
@@ -227,36 +298,6 @@ export function createComponentCollector(
 
   // Collectorの作成
   return response.resource?.message?.createMessageComponentCollector(options);
-}
-
-// ページングのボタンを作成するクラス
-// 限定的
-export class PagingButton {
-  // rowプロパティにActionRowを入れる
-  row: ActionRowBuilder<ButtonBuilder>;
-  constructor() {
-    // ボタンの初期化
-    const buttons = [
-      new ButtonBuilder()
-        .setCustomId("back")
-        .setLabel("前に戻る")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji("⏪"),
-      new ButtonBuilder()
-        .setCustomId("next")
-        .setLabel("次に進む")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji("⏩")
-    ];
-
-    // buttons全てに処理をし、二つのボタンを合わせたActionRowを作る
-    const row = buttons.reduce((previous, button) => {
-      return new ActionRowBuilder<ButtonBuilder>(previous).addComponents(button);
-    }, new ActionRowBuilder<ButtonBuilder>);
-
-    // 設定
-    this.row = row;
-  }
 }
 
 // ページングのメッセージのボタンの処理用の関数
