@@ -1,7 +1,7 @@
-import { color, getRootJSON, setRootJSON, getRandomStatus, cleanUserDataJSON, createComponentCollector } from "../functions.js";
+import { color, getRandomStatus, cleanUserDataJSON, getUserData, setUserData, createComponentCollector } from "../functions.js";
 
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder, ComponentType, MessageFlags } from "discord.js";
-import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
+import type { BaseGuildTextChannel, ButtonInteraction, StringSelectMenuInteraction, User } from "discord.js";
 
 // ステータス値を計算してくれるクラス
 class StatusCalculator {
@@ -97,18 +97,17 @@ const data: Subcommand = {
   isSubcommand: true,
   cooldown: 3600,
   async execute(interaction, client) {
-    // ユーザー全体のデータ(users_data.json)を取得
-    const usersData: UsersData = getRootJSON("users_data.json");
-    // idを取得
-    const userId = interaction.user.id;
-    // 既に登録されているか判定
-    if (userId in usersData && "status" in usersData[userId]!) {
+    // ユーザーのデータを取得
+    const userData = getUserData(interaction.user.id);
+
+    // 登録されているかの確認
+    if (typeof userData !== "undefined" && "status" in userData) {
       // 返信
       await interaction.reply({
         content: "既にステータスを作成しています。",
         flags: MessageFlags.Ephemeral
       });
-      // 中断
+      // この先の処理はしない
       return;
     }
 
@@ -355,16 +354,16 @@ const data: Subcommand = {
             flags: MessageFlags.Ephemeral
           });
 
-          // ステータスの設定と所持金の初期化
-          usersData[userId] = {
+          // ステータスと所持金のデータを作成
+          const data: UserData = {
             status: finalStatusData.status,
             inventory: {
               gold: 1000
             }
           };
 
-          // ユーザーのデータを保存する
-          setRootJSON("users_data.json", JSON.stringify(usersData, null, 2));
+          // データを保存
+          setUserData(interaction.user.id, data);
 
           // ステータス名を選ぶメニューを無効化する
           nameChoicesMenu.setDisabled(true);

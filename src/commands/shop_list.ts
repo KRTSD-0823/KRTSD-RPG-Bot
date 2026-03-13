@@ -1,15 +1,20 @@
-import { color, concatShopString, splitArray, setPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector } from "../functions.js";
+import { color, concatItems, splitArray, createPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector, getRootJSON } from "../functions.js";
 
 import { EmbedBuilder, MessageFlags } from "discord.js";
 
 const data: Subcommand = {
   isSubcommand: true,
   async execute(interaction) {
+    // ショップのデータを取得
+    const shopData: ShopData = getRootJSON("shop_data.json");
     // 内容を入れる
-    const shopContents = concatShopString("\n");
+    const shopContents = concatItems(shopData.data, "\n");
+
+    // 型ガード
+    if (typeof shopContents === "undefined") return;
 
     // ページングの埋め込み用に整える
-    const splitedShopContents = splitArray(shopContents, 4096);
+    const splitedShopContents = splitArray(shopContents, 1024);
 
     // それぞれ埋め込みを設定する
     const shopEmbeds = splitedShopContents.map((content) =>
@@ -20,7 +25,7 @@ const data: Subcommand = {
     );
 
     // 埋め込みのタイトルの設定
-    const newShopEmbeds = setPagingEmbeds(shopEmbeds, "装備一覧");
+    const newShopEmbeds = createPagingEmbeds(shopEmbeds, "装備一覧");
 
     // 埋め込みの初期化
     const embed = getPaging(newShopEmbeds, 1);

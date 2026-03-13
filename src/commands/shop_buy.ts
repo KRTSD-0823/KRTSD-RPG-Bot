@@ -1,4 +1,4 @@
-import { getRootJSON, setRootJSON, concatShopString, createComponentCollector } from "../functions.js";
+import { getRootJSON, concatItems, getUserData, setUserData, createComponentCollector, initializeInventoryData } from "../functions.js";
 
 import { ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags, ComponentType } from "discord.js";
 import type { ButtonInteraction } from "discord.js";
@@ -53,12 +53,8 @@ const data: Subcommand = {
     // 選択された値に一致するデータを取得
     const selectedData = shopData.data[index];
 
-    // ユーザーのデータを取得
-    const usersData: UsersData = getRootJSON("users_data.json");
-    // IDを取得
-    const userId = interaction.user.id;
     // 読み込み
-    const userData = usersData[userId];
+    const userData = getUserData(interaction.user.id);
 
     // プロパティが存在しているかチェック
     if (typeof userData === "undefined") {
@@ -73,17 +69,10 @@ const data: Subcommand = {
 
     // inventory、またはgoldが存在しないなら設定
     if (!("inventory" in userData) || !("gold" in userData.inventory)) {
-      userData.inventory = {
-        gold: 1_000
-      }
+      initializeInventoryData(userData);
     }
 
-    // itemsが存在しないなら設定
-    if (!("items" in userData.inventory)) {
-      userData.inventory.items = [];
-    }
-
-    // 型ガードと判定
+    // 型ガード
     if (typeof selectedData?.値段 !== "number") return;
 
     // 取り出し
@@ -97,9 +86,12 @@ const data: Subcommand = {
         // 武器種を削除
         .replace(/(?<=.+)\/.*/, "");
 
-    if (userData.inventory.gold! > selectedData.値段) {
+    // 所持金が十分かの判定
+    if (userData.inventory!.gold! > selectedData.値段) {
+      // ショップのデータを取得
+      const shopData = getRootJSON("shop_data.json");
       // 説明の取得
-      const description = concatShopString("\n")[index]!;
+      const description = concatItems(shopData)?.[index];
 
       // 決定ボタンの作成
       const confirmButton = new ButtonBuilder()
@@ -112,9 +104,9 @@ const data: Subcommand = {
 
       // Collector用に保存
       const response = await interaction.reply({
-        content: description +
+        content: description + "\n" +
           "上記のアイテムを購入します。\n" +
-          `所持金：\`${inventory.gold}G\``,
+          `所持金：\`${inventory!.gold}G\``,
         components: [row],
         flags: MessageFlags.Ephemeral,
         withResponse: true
@@ -129,20 +121,19 @@ const data: Subcommand = {
         if (i.customId !== "confirm") return;
 
         // 所持金を減らす
-        inventory.gold! -= 値段;
+        inventory!.gold! -= 値段;
 
         // アイテムを追加
-        inventory.items!.push(selectedData);
+        inventory!.items!.push(selectedData);
 
-        // JSONに変換
-        setRootJSON("users_data.json", JSON.stringify(usersData, null, 2));
+        // データの設定
+        setUserData(interaction.user.id, userData);
 
-        // 無効化したやつ
-        const disabledConfirmButton = new ButtonBuilder(confirmButton.data)
-          .setDisabled(true);
+        // ボタンを無効化する
+        confirmButton.setDisabled(true);
 
         // 新たに作成
-        const newRow = row.setComponents(disabledConfirmButton);
+        const newRow = row.setComponents(confirmButton);
         
         // 編集
         await interaction.editReply({
@@ -153,13 +144,13 @@ const data: Subcommand = {
         // 返信
         await i.reply({
           content: `\`${replacedValue}\`を購入しました。\n` +
-            `所持金：\`${inventory.gold}G\``,
+            `所持金：\`${inventory!.gold}G\``,
           flags: MessageFlags.Ephemeral
         });
       });
     } else {
       // 足りない差額を計算
-      const difference = selectedData.値段 - inventory.gold!;
+      const difference = selectedData.値段 - inventory!.gold!;
 
       // 返信
       await interaction.reply({
