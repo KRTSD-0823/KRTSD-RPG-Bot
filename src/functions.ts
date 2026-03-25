@@ -13,6 +13,13 @@ export const color: BotColor = {
   default: [255, 120, 80]
 };
 
+// 初期のユーザーの持ち物のデータ
+export const defaultUserInventory = {
+  gold: 1000,
+  sp: 100,
+  items: []
+};
+
 // ルート(src)にあるJSONファイルを読み込む関数
 export function getRootJSON(fileName: string) {
   // パスの取得
@@ -111,26 +118,69 @@ export function cleanUserDataJSON(data: string) {
 }
 
 // アイテムのデータを整形した文字列の配列にする関数
-export function concatItems(itemsData: Array<Items> | undefined, last?: string) {
+export function concatShopItems(itemsData: Array<Items> | undefined, last?: string) {
   // 型ガード
   if (typeof itemsData === "undefined") return;
 
   // 全て順次に処理して返す
-  return itemsData.reduce((current: Array<string>, data) => {
-    // 取り出す
-    const { 名前, 種類, 値段, 威力, 説明 } = data;
-    // 内容を追加
-    current.push(
-      "```\n" +
-      `・${名前}/${種類}\n` +
-      `値段：${値段}\n` +
-      // 威力がundefinedじゃないなら威力を表示
-      `${typeof 威力 !== "undefined" ? `威力：${威力}\n` : ""}` +
-      "【説明】\n" +
-      説明 +
-      "\n```" +
-      (last ?? "")
-    );
+  return itemsData.reduce((current: Array<string>, itemData) => {
+    // 共通するプロパティのみ取りだす
+    const { 名前, 種類, 説明 } = itemData;
+    switch(種類) {
+      case "武器": {
+        // 取り出す
+        const { 値段, 武器種, 威力 } = itemData;
+        // 内容を追加
+        current.push(
+          "```\n" +
+          `・${名前}/${武器種}\n` +
+          `値段：${値段}G\n` +
+          `威力：${威力}\n` +
+          "【説明】\n" +
+          説明 +
+          "\n```" +
+          // 追加の文字
+          (last ?? "")
+        );
+
+        // 先の処理をしないようにする
+        break;
+      }
+      case "防具": {
+        // 取り出す
+      const { 値段 } = itemData;
+        // 追加
+        current.push(
+          "```\n" +
+          `・${名前}/${種類}\n` +
+          `値段：${値段}G\n` +
+          "【説明】\n" +
+          説明 +
+          "\n```" +
+          (last ?? "")
+        );
+
+        break;
+      }
+      case "アビリティ": {
+        // 取り出す
+        const { コスト, 武器種 } = itemData;
+        // 追加
+        current.push(
+          "```\n" +
+          `・${名前}/${種類}\n` +
+          `・使用可能武器：${武器種.join(", ")}\n` +
+          `コスト：${コスト}SP\n` +
+          "【説明】\n" +
+          説明 +
+          "\n```" +
+          (last ?? "")
+        );
+
+        break;
+      }
+    }
+    
     // 返す(currentStringを次に回す)
     return current;
   }, []);
@@ -163,18 +213,6 @@ export function setUserData(id: string, data: UserData) {
 
   // 設定後の全体のデータを返す
   return usersData;
-}
-
-// ユーザーの持ち物のデータを設定する関数
-export function initializeInventoryData(data: UserData) {
-  // 設定
-  data.inventory = {
-    gold: 1000,
-    items: []
-  };
-
-  // 参照渡しなので実行のみでも大丈夫だが、念のため設定後のデータを返す
-  return data;
 }
 
 // 文字に含まれる現在のページを抜き出す
@@ -217,6 +255,7 @@ export function createPagingEmbeds(embeds: Array<EmbedBuilder>, title: string) {
 export class PagingButton {
   // rowプロパティにActionRowを入れる
   row: ActionRowBuilder<ButtonBuilder>;
+  button: Array<ButtonBuilder>;
   constructor() {
     // ボタンの初期化
     const buttons = [
@@ -232,12 +271,15 @@ export class PagingButton {
         .setEmoji("⏩")
     ];
 
+    // ボタンのデータの設定
+    this.button = buttons;
+
     // buttons全てに処理をし、二つのボタンを合わせたActionRowを作る
     const row = buttons.reduce((previous, button) => {
       return new ActionRowBuilder<ButtonBuilder>(previous).addComponents(button);
     }, new ActionRowBuilder<ButtonBuilder>);
 
-    // 設定
+    // ActionRowの設定
     this.row = row;
   }
 }
@@ -319,22 +361,30 @@ export function executePagingComponentCollector(
     // 現在のページを取得
     const currentPage = parsePage(i.message.embeds[0]!.data.title!);
     // 進むボタンか戻るボタンか判定
-    if (i.customId === "next") {
-      // 次のページを取得
-      const nextEmbed = getPaging(embeds, currentPage, 1);
-      // 編集
-      await interaction.editReply({
-        embeds: [nextEmbed],
-        components: i.message.components
-      });
-    } else if (i.customId === "back") {
-      // 前のページを取得
-      const nextEmbed = getPaging(embeds, currentPage, -1);
-      // 編集
-      await interaction.editReply({
-        embeds: [nextEmbed],
-        components: i.message.components
-      });
+    switch(i.customId) {
+      case "next": {
+        // 次のページを取得
+        const nextEmbed = getPaging(embeds, currentPage, 1);
+        // 編集
+        await interaction.editReply({
+          embeds: [nextEmbed],
+          components: i.message.components
+        });
+
+        // 次の分岐に移行しないようにする
+        break;
+      }
+      case "back": {
+        // 前のページを取得
+        const nextEmbed = getPaging(embeds, currentPage, -1);
+        // 編集
+        await interaction.editReply({
+          embeds: [nextEmbed],
+          components: i.message.components
+        });
+
+        break;
+      }
     }
   });
 }
