@@ -48,13 +48,19 @@ const data: Command = {
     }
 
     // インテラクションの種類の判定
-    if (interaction.isChatInputCommand()) {
-      await command.execute(interaction, client);
-    } else if (interaction.isAutocomplete()) {
+    switch(true) {
+      case interaction.isChatInputCommand():
+        // 通常のコマンドの実行
+        await command.execute(interaction, client);
+        // この後の文を処理をしない
+        break;
+    case interaction.isAutocomplete():
       // プロパティの存在確認
       if (!("autocomplete" in command)) return;
 
+      // オートコンプリートの処理
       await command.autocomplete(interaction);
+      break;
     }
   }
 };

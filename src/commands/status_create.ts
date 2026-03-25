@@ -139,7 +139,7 @@ const data: Subcommand = {
       .setCustomId("statusName")
       .setPlaceholder("ステータス名を選択");
     // 各ステータス名をオプションに追加
-    Object.keys(statusChoices).forEach((name: string) => 
+    Object.keys(statusChoices).forEach((name: string) =>
       nameChoicesMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(name)
@@ -222,7 +222,7 @@ const data: Subcommand = {
         const valueSelectMenu = new StringSelectMenuBuilder()
           .setCustomId("statusValue")
           .setPlaceholder(`${statusName}の値を選択`);
-        
+
         // valueChoicesの全ての要素に対して処理
         valueChoices.forEach((choice: number, i) => {
           // choiceとiは数字型なので文字列型にしてあげる(別定数に代入)
@@ -297,110 +297,117 @@ const data: Subcommand = {
       const { customId } = i;
 
       // ボタンごとの処理
-      if (customId === "cancel") {
-        await i.deferUpdate();
-        // ステータスの値を選択したとき、一つ前のステータス名を選択する画面に戻る
-        await interaction.editReply({
-          embeds: [embed],
-          components: row1
-        });
-      } else if (customId === "confirm") {
-        await i.deferReply({
-          flags: MessageFlags.Ephemeral
-        });
-
-        // 最終のステータス
-        const finalStatusData = new StatusCalculator(statusData);
-
-        // 作成を確定するボタン
-        const enterButton = new ButtonBuilder()
-          .setCustomId("enter")
-          .setLabel("確定する")
-          .setStyle(ButtonStyle.Success);
-
-        const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
-
-        // followUpはMessageオブジェクトが返ってくる
-        // replyはInteractionCallbackResponseオブジェクトが返ってくる
-        const enterButtonMessage = await i.followUp({
-          content: "```\n" +
-            cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
-            "\n```\n以上のステータスを登録します。",
-          components: [row3],
-          flags: MessageFlags.Ephemeral,
-          withResponse: true
-        });
-
-        // 確定ボタンの検知とか
-        const enterButtonCollector = enterButtonMessage.createMessageComponentCollector({
-          componentType: ComponentType.Button,
-          filter: componentFilter
-        });
-
-        // 確定ボタンが押された時の処理
-        enterButtonCollector?.on("collect", async (enterButtonInteraction: ButtonInteraction) => {
-          // 決定ボタンを無効化(選択できないように)する
-          enterButton.setDisabled(true);
-          const newRow3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
-
-          // 確認のメッセージを編集
-          await i.editReply({
-            embeds: enterButtonMessage.embeds, // Embedの流用
-            components: [newRow3]
-          });
-
-          // deferReplyで処理が遅れても15分までなら「インタラクションに失敗しました」というメッセージを出さなくなる
-          await enterButtonInteraction.deferReply({
-            flags: MessageFlags.Ephemeral
-          });
-
-          // ステータスと所持金のデータを作成
-          const data: UserData = {
-            status: finalStatusData.status,
-            inventory: {
-              gold: 1000
-            }
-          };
-
-          // データを保存
-          setUserData(interaction.user.id, data);
-
-          // ステータス名を選ぶメニューを無効化する
-          nameChoicesMenu.setDisabled(true);
-
-          // 送信するボタンを無効化する
-          confirmButton.setDisabled(true);
-
-          // rowの再設定
-          (row1[0] as ActionRowBuilder<StringSelectMenuBuilder>)?.setComponents(nameChoicesMenu);
-          (row1[1] as ActionRowBuilder<ButtonBuilder>)?.setComponents(confirmButton);
-
-          // 編集
+      switch (customId) {
+        case "cancel":
+          await i.deferUpdate();
+          // ステータスの値を選択したとき、一つ前のステータス名を選択する画面に戻る
           await interaction.editReply({
             embeds: [embed],
             components: row1
           });
-
-          // BaseGuildTextChannelって型を付けてあげないとsendメソッドが出てこない
-          const nowChannel = client.channels.cache.get(enterButtonInteraction.channelId) as BaseGuildTextChannel;
-
-          if (typeof nowChannel !== "undefined") {
-            // チャンネルにステータスを送信
-            nowChannel.send(
-              `<@${interaction.user.id}>\n` + // メンションを飛ばす
-              "```\n" +
-              cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
-              "\n```"
-            )
-          }
-
-          // 返信
-          await enterButtonInteraction.followUp({
-            content: "登録が完了しました。",
+          // この後の文を処理しない
+          break;
+        case "confirm":
+          // 確認の返信
+          await i.deferReply({
             flags: MessageFlags.Ephemeral
           });
-        });
+          break;
       }
+
+      // 最終のステータス
+      const finalStatusData = new StatusCalculator(statusData);
+
+      // 作成を確定するボタン
+      const enterButton = new ButtonBuilder()
+        .setCustomId("enter")
+        .setLabel("確定する")
+        .setStyle(ButtonStyle.Success);
+
+      const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
+
+      // followUpはMessageオブジェクトが返ってくる
+      // replyはInteractionCallbackResponseオブジェクトが返ってくる
+      const enterButtonMessage = await i.followUp({
+        content: "```\n" +
+          cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
+          "\n```\n以上のステータスを登録します。",
+        components: [row3],
+        flags: MessageFlags.Ephemeral,
+        withResponse: true
+      });
+
+      // 確定ボタンの検知とか
+      const enterButtonCollector = enterButtonMessage.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        filter: componentFilter
+      });
+
+      // 確定ボタンが押された時の処理
+      enterButtonCollector?.on("collect", async (enterButtonInteraction: ButtonInteraction) => {
+        // 決定ボタンを無効化(選択できないように)する
+        enterButton.setDisabled(true);
+        const newRow3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterButton);
+
+        // 確認のメッセージを編集
+        await i.editReply({
+          embeds: enterButtonMessage.embeds, // Embedの流用
+          components: [newRow3]
+        });
+
+        // deferReplyで処理が遅れても15分までなら「インタラクションに失敗しました」というメッセージを出さなくなる
+        await enterButtonInteraction.deferReply({
+          flags: MessageFlags.Ephemeral
+        });
+
+        // ステータスと所持金のデータを作成
+        const data: UserData = {
+          status: finalStatusData.status,
+          inventory: {
+            gold: 1000,
+            sp: 100,
+            items: []
+          }
+        };
+
+        // データを保存
+        setUserData(interaction.user.id, data);
+
+        // ステータス名を選ぶメニューを無効化する
+        nameChoicesMenu.setDisabled(true);
+
+        // 送信するボタンを無効化する
+        confirmButton.setDisabled(true);
+
+        // rowの再設定
+        (row1[0] as ActionRowBuilder<StringSelectMenuBuilder>)?.setComponents(nameChoicesMenu);
+        (row1[1] as ActionRowBuilder<ButtonBuilder>)?.setComponents(confirmButton);
+
+        // 編集
+        await interaction.editReply({
+          embeds: [embed],
+          components: row1
+        });
+
+        // BaseGuildTextChannelって型を付けてあげないとsendメソッドが出てこない
+        const nowChannel = client.channels.cache.get(enterButtonInteraction.channelId) as BaseGuildTextChannel;
+
+        if (typeof nowChannel !== "undefined") {
+          // チャンネルにステータスを送信
+          nowChannel.send(
+            `<@${interaction.user.id}>\n` + // メンションを飛ばす
+            "```\n" +
+            cleanUserDataJSON(JSON.stringify(finalStatusData.status)) +
+            "\n```"
+          )
+        }
+
+        // 返信
+        await enterButtonInteraction.followUp({
+          content: "登録が完了しました。",
+          flags: MessageFlags.Ephemeral
+        });
+      });
     });
   }
 };
