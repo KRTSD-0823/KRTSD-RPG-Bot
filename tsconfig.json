@@ -50,6 +50,8 @@
     "typeRoots": [
       "node_modules/@types",
       "src/@types"
-    ]
+    ],
+    // switch文のフォールスルー(break忘れ)を禁止する
+    "noFallthroughCasesInSwitch": true
   }
 }
