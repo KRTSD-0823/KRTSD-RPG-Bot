@@ -1,4 +1,4 @@
-import { color, splitArray, concatItems, getUserData, initializeInventoryData, createPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector } from "../functions.js";
+import { color, defaultUserInventory, splitArray, concatShopItems, getUserData, createPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector } from "../functions.js";
 
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
 
@@ -26,11 +26,11 @@ const data: Command = {
     // inventoryが存在するか確認
     if (!("inventory" in userData)) {
       // inventoryの初期化
-      initializeInventoryData(userData);
+      userData.inventory = defaultUserInventory;
     }
 
     // 所持アイテムを文字列の配列にする
-    const items = concatItems(userData.inventory?.items);
+    const items = concatShopItems(userData.inventory.items);
 
     // 型ガード
     if (typeof items === "undefined") return;
@@ -71,6 +71,7 @@ const data: Command = {
         withResponse: true
       });
 
+      // ページング機能
       executePagingComponentCollector(interaction, response, newItemEmbeds);
     } else {
       // 埋め込みの説明(空)を設定

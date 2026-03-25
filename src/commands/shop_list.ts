@@ -1,4 +1,4 @@
-import { color, concatItems, splitArray, createPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector, getRootJSON } from "../functions.js";
+import { color, concatShopItems, splitArray, createPagingEmbeds, getPaging, PagingButton, executePagingComponentCollector, getRootJSON } from "../functions.js";
 
 import { EmbedBuilder, MessageFlags } from "discord.js";
 
@@ -8,7 +8,7 @@ const data: Subcommand = {
     // ショップのデータを取得
     const shopData: ShopData = getRootJSON("shop_data.json");
     // 内容を入れる
-    const shopContents = concatItems(shopData.data, "\n");
+    const shopContents = concatShopItems(shopData.data, "\n");
 
     // 型ガード
     if (typeof shopContents === "undefined") return;
