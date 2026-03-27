@@ -7,4 +7,6 @@ build/*
 
 // 重要な情報が入ったJSONファイル
 src/config.json
+
+// ユーザーごとの個別のデータが入ったJSONファイル
 src/users_data.json
